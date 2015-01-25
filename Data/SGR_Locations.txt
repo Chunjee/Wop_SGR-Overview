@@ -1,0 +1,4 @@
+TVG-01#\\tvgopstgp01\tvg\LogFiles
+TVG-04#\\tvgopstgp04\tvg\LogFiles
+NJ-01#\\njaopstgp01\tvg\LogFiles
+NJ-02#\\njaopstgp02\tvg\LogFiles
