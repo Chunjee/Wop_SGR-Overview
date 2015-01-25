@@ -8,7 +8,7 @@
 ;Compile Options
 ;~~~~~~~~~~~~~~~~~~~~~
 StartUp()
-Version_Name = v0.2
+Version_Name = v0.2.1
 The_ProjectName = SGR Overview
 
 ;Dependencies
@@ -211,7 +211,7 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 			
 			
 			;Ok insert data to correct track; New track is done being added/Existing track is selected
-			AllTracks_Array[Track_Index,MessageType] := TimeStamp
+			AllTracks_Array[Track_Index,MessageType] := TimeStamp ;Note this is sending timestamp to MessageType not "MessageType"; its an element deeper in the array
 			AllTracks_Array[Track_Index,"TimeStamp"] := TimeStamp
 			AllTracks_Array[Track_Index,"TrackCode"] := TrackCode
 			AllTracks_Array[Track_Index,"TrackName"] := TrackName
@@ -283,7 +283,7 @@ Loop, % AllTracks_Array.MaxIndex() {
 	;Track is getting close to post time with no probable data?
 	MTP := 
 	MTP := Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})") . ":" . Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})$")
-	MTP := Fn_IsTimeClose(MTP,1)
+	MTP := Fn_IsTimeClose(MTP,1,"m")
 	;If (AllTracks_Array[A_Index,"ProbableType"] = "" && MTP < 30) {
 	;AllTracks_Array[A_Index,"Color"] := "Orange"
 	;AllTracks_Array[A_Index,"Comment"] := "No Probable data for upcoming current race"
@@ -299,7 +299,7 @@ Loop, % AllTracks_Array.MaxIndex() {
 	WO := Fn_IsTimeClose(AllTracks_Array[A_Index,"WO"])
 	WR := Fn_IsTimeClose(AllTracks_Array[A_Index,"WR"])
 	WP := Fn_IsTimeClose(AllTracks_Array[A_Index,"WP"])
-	;Msgbox, % RI
+	;Msgbox, % MTP
 		If (PB > 300 && MTP < 30 || PB = "") {
 		AllTracks_Array[A_Index,"Score"] += -100
 		AllTracks_Array[A_Index,"Comment"] := "PB MISSING Feature Probables Messages"
@@ -420,7 +420,7 @@ LV_Delete()
 LVA_Refresh("GUI_Listview")
 
 Loop, % AllTracks_Array.MaxIndex() {
-TimeDifference := Fn_IsTimeClose(AllTracks_Array[A_Index,"TimeStamp"])
+
 
 	RI := 
 	PB := 
@@ -437,22 +437,33 @@ TimeDifference := Fn_IsTimeClose(AllTracks_Array[A_Index,"TimeStamp"])
 	{
 	WP = ✓
 	}
-	
-	
+
+;###############Shouldn't this all be happening up in the logic area? Move when time permits###############
+;Also work with oldest possible message. Dunno; think about it; might not have all types of messages all the time
+
+;Convert last timestamp to easy to work with age of last message
+TimeDifference := Fn_IsTimeClose(AllTracks_Array[A_Index,"TimeStamp"],0,"s")
 TimeString := " sec"
+	;If the last message was more than 60 seconds ago. Must be at least a min old
 	If (TimeDifference >= 60 || TimeDifference = "ERROR") {
-	AllTracks_Array[A_Index,"Late"] := 1
-	TimeDifference := Floor(TimeDifference / 60)
+	TimeDifference := Fn_IsTimeClose(AllTracks_Array[A_Index,"TimeStamp"],0,"m")
 	TimeString := " min"
-		If (TimeDifference > 4) {
+		;If the track hasn't got a new message in 3 mins! LATE!!!!
+		If (TimeDifference > 3) {
+		AllTracks_Array[A_Index,"Late"] := 1
+		AllTracks_Array[A_Index,"Score"] += -100 ;This does nothing right now because sort happens earlier
 		LVA_SetCell("GUI_Listview", A_Index, 5, "ffbe03")
-			If (TimeDifference >= 60 || TimeDifference = "ERROR") {
-			AllTracks_Array[A_Index,"Late"] := 2
-			TimeDifference := Floor(TimeDifference / 60)
-			;LVA_SetCell("GUI_Listview", A_Index, 5, "red")
-			TimeString := " hour"
-			}
 		}
+		If (TimeDifference > 5) {
+		LVA_SetCell("GUI_Listview", A_Index, 5, "Red")
+		}
+		If (TimeDifference >= 60) {
+		TimeDifference := Fn_IsTimeClose(AllTracks_Array[A_Index,"TimeStamp"],0,"h")
+		TimeString := " hour"
+		AllTracks_Array[A_Index,"Late"] := 2
+		AllTracks_Array[A_Index,"Score"] += -100 ;This does nothing right now because sort happens earlier
+		}
+	
 	}
 TimeDifference := TimeDifference . TimeString
 
@@ -579,25 +590,24 @@ File.Close()
 Return (Content <> "" ? StrSplit(Content, NewLine) : Content)
 }
 
-Fn_IsTimeClose(para_TimeStamp,para_reverse := 0)
+Fn_IsTimeClose(para_TimeStamp,para_Reverse := 0,para_ReturnType := "s")
 {
-;AllTracks_Array[A_Index,"TimeStamp_TVG"]
+;Checks if two timestamps are close to each other; returns difference in seconds by default. para_reverse = 1 subtracks 
 l_TimeStamp1 := Fn_QuickRegEx(para_TimeStamp,"(\d{2}):")
 l_TimeStamp2 := Fn_QuickRegEx(para_TimeStamp,":(\d{2})")
 	If (l_TimeStamp1 != "null" && l_TimeStamp2 != "null") {
 	FormatTime, Currentday_PRE,, yyyyMMdd
 	l_TimeStampConverted := Currentday_PRE . l_TimeStamp1 . l_TimeStamp2 . 00
-	
+		;do for normal or reserve
 		If (para_reverse = 0) {
-		Difference := A_Now - l_TimeStampConverted
+		l_Now := A_Now
+		l_Now -= l_TimeStampConverted, %para_ReturnType%
+		Difference := l_Now
 		} Else {
-		l_TimeStampConverted -= A_Now, m
+		l_TimeStampConverted -= A_Now, %para_ReturnType%
 		Difference := l_TimeStampConverted
 		;Difference := l_TimeStampConverted - A_Now
 		}
-	;Formattime,MON, l_TimeStampConverted,
-	;Msgbox, %l_TimeStampConverted% `n%A_Now% `n%MON%
-	;Difference := Fn_QuickRegEx(Difference,"(\d+)")
 	Return %Difference%
 	Msgbox, %l_TimeStampConverted% - %A_Now%  = %Difference%    # (%l_TimeStamp1%%l_TimeStamp2%)
 	}
