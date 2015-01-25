@@ -8,7 +8,7 @@
 ;Compile Options
 ;~~~~~~~~~~~~~~~~~~~~~
 StartUp()
-Version_Name = v0.1 Prototype
+Version_Name = v0.2
 The_ProjectName = SGR Overview
 
 ;Dependencies
@@ -121,7 +121,8 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 	MessageType := 
 	TrackCode := 
 	NextPost := 
-	CurrentRace := 
+	CurrentRace :=
+	OfficialRace :=	
 	ProbableType :=
 	TrackOfficial := 
 	TotalRaces := 
@@ -139,22 +140,26 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 		UnknownmessageCounter++
 		}
 
-		
+		; RI - RACE INFORMATION MESSAGE TYPE ##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##
 		If (MessageType = "RI") {
-		;MessageLength := Fn_QuickRegEx(FULL_MESSAGE,"length=\W(\d+)\W")
-		;REG := "(.{" . MessageLength . "})...$"
-		;Message := Fn_QuickRegEx(FULL_MESSAGE,REG)
+		;Get Next Post time
 		NextPost := Fn_QuickRegEx(FULL_MESSAGE,"(\d{4})\d{2}TRACK")
+		
+		;Get Current Race as shown by RI message
 		REG := TrackCode . "\d\w+\W+(\d{2})"
 		CurrentRace := Fn_QuickRegEx(FULL_MESSAGE,REG)
+			;Is this track official?
 			If (InStr(FULL_MESSAGE,"TRACK      OFFICIAL") && TrackCode != "null") {
 			TrackOfficial := 1
+				;Which race is official exactly?
+				REG := TrackCode . "\d+\W+(\d{2})"
+				OfficialRace := Fn_QuickRegEx(FULL_MESSAGE,REG)
 			} Else {
 			TrackOfficial := 0
 			}
 		}
 		
-		;Only Read this message stuff if PB -PROBABLES- message type is detected
+		;PB - FEATURED PROBABLES MESSAGE TYPE ##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##
 		If (MessageType = "PB") {
 		REG := TrackCode . "\d+(\s+|\w+)\s\d+(\w+)"
 		ProbableType := Fn_QuickRegEx(FULL_MESSAGE,REG,2)
@@ -162,6 +167,7 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 		ProbableRace := Fn_QuickRegEx(FULL_MESSAGE,REG)
 		}
 		
+		;RN - SCRATCHED RUNNERS MESSAGE TYPE ##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##
 		If (MessageType = "RN") {
 		TotalRaces := Fn_QuickRegEx(FULL_MESSAGE,"\W+00\d+(([A-Z]|[A-Z0-9]){3})\w+\W+\d{6}(\d{2})",3)
 		}
@@ -175,8 +181,8 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 		
 		
 		
-		
-	;- FIXED - This HAD a weakness that it will not record timestamps until the 2nd message is seen because the track doesn't exist in the array until the 2nd pass.
+		;Determine if this track exists already in AllTracks_Array and select it with Track_Index
+;- FIXED - This HAD a weakness that it will not record timestamps until the 2nd message is seen because the track doesn't exist in the array until the 2nd pass.
 		If (Track != "null" && TimeStamp != "null" && MessageType != "null") {
 		TrackFound_Bool := False
 			Loop, % AllTracks_Array.MaxIndex() {
@@ -204,12 +210,13 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 			
 			
 			
-			;Ok insert data to correct track; New track is done being added
+			;Ok insert data to correct track; New track is done being added/Existing track is selected
 			AllTracks_Array[Track_Index,MessageType] := TimeStamp
 			AllTracks_Array[Track_Index,"TimeStamp"] := TimeStamp
 			AllTracks_Array[Track_Index,"TrackCode"] := TrackCode
 			AllTracks_Array[Track_Index,"TrackName"] := TrackName
 				
+				; PB - ##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##
 				If (MessageType = "PB") {
 					If (AllTracks_Array[Track_Index,"CurrentRace"] != AllTracks_Array[Track_Index,"ProbableRace"]) {
 					AllTracks_Array[Track_Index,"ProbableType"] := ""
@@ -224,13 +231,22 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 					AllTracks_Array[Track_Index,"PB_99"] := 0
 					}
 				}
-				If (MessageType = "RI" && NextPost != "null") {
-				AllTracks_Array[Track_Index,"NextPost"] := NextPost
-				AllTracks_Array[Track_Index,"CurrentRace"] := CurrentRace
-					If (TrackOfficial = 1) {
-					AllTracks_Array[Track Index,"TrackOfficial"] := 1
+				
+				;RI - ##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##
+				If (MessageType = "RI") {
+					If (OfficialRace != "null") {
+					AllTracks_Array[Track_Index,"OfficialRace"] := OfficialRace
+					}
+					If (NextPost != "null") {
+					AllTracks_Array[Track_Index,"NextPost"] := NextPost
+					AllTracks_Array[Track_Index,"CurrentRace"] := CurrentRace
+						If (TrackOfficial = 1) {
+						AllTracks_Array[Track_Index,"TrackOfficial"] := 1
+						}
 					}
 				}
+				
+				;RN - ##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##
 				If (MessageType = "RN") {
 					If (TotalRaces != "null" && TotalRaces != "") {
 					AllTracks_Array[Track_Index,"TotalRaces"] := TotalRaces
@@ -331,7 +347,7 @@ Loop, % AllTracks_Array.MaxIndex() {
 	
 	
 	;TRACK COMPLETED?
-	If (AllTracks_Array[A_Index,"CurrentRace"] = AllTracks_Array[A_Index,"TotalRaces"]) {
+	If (AllTracks_Array[A_Index,"TotalRaces"] = AllTracks_Array[A_Index,"OfficialRace"]) {
 	AllTracks_Array[A_Index,"Completed"] := True
 	} Else {
 	AllTracks_Array[A_Index,"Completed"] := False
@@ -463,8 +479,10 @@ TimeDifference := TimeDifference . TimeString
 MTP := 
 MTP := Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})") . ":" . Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})$")
 MTP := Fn_IsTimeClose(MTP,1)
+
 	If (AllTracks_Array[A_Index,"Completed"] = False) {
-	LV_Add("",AllTracks_Array[A_Index,"TrackName"],AllTracks_Array[A_Index,"TrackCode"],MTP,AllTracks_Array[A_Index,"CurrentRace"] . "/" . AllTracks_Array[A_Index,"TotalRaces"],TimeDifference,PB,WP,AllTracks_Array[A_Index,"Comment"])
+	;Note some fields have extra A_Space or "   " appended to help with LV_ModifyCol() later. modifying each column is resource intensive for overloaded wallboard monitors
+	LV_Add("",AllTracks_Array[A_Index,"TrackName"],AllTracks_Array[A_Index,"TrackCode"],MTP,AllTracks_Array[A_Index,"CurrentRace"] . "/" . AllTracks_Array[A_Index,"TotalRaces"],TimeDifference,PB . "   ",WP . "   ",AllTracks_Array[A_Index,"Comment"])
 	}
 }
 
@@ -478,13 +496,12 @@ Loop, % AllTracks_Array.MaxIndex() {
 Fn_ExportArray(AllTracks_Array,"MainDB")
 LV_ModifyCol()
 LV_ModifyCol(1, 160)
-LV_ModifyCol(2, 52) ;Track Code
-LV_ModifyCol(3, 46) ;MTP
-LV_ModifyCol(5) ;Race
-LV_ModifyCol(6, 50) ;Odds
-LV_ModifyCol(7, 40) ;Willpay
-LV_ModifyCol(8, 400) ;Comment
-Sleep 100
+;LV_ModifyCol(2, 52) ;Track Code
+;LV_ModifyCol(3, 46) ;MTP
+;LV_ModifyCol(5) ;Race
+;LV_ModifyCol(6, 50) ;Odds
+;LV_ModifyCol(7, 40) ;Willpay
+;LV_ModifyCol(8, 400) ;Comment
 LVA_Refresh("GUI_Listview")
 OnMessage("0x4E", "LVA_OnNotify")
 Guicontrol, +ReDraw, GUI_Listview
@@ -637,7 +654,7 @@ MemoryFile := ;Blank
 BuildGUI()
 {
 Global
-Gui, Add, Text, x388 y3 w100 +Right, %Version_Name%
+Gui, Add, Text, x440 y3 w100 +Right, %Version_Name%
 Gui, Add, Tab, x2 y0 h900 w550  , Main|Options
 ;Gui, Tab, Scratches
 Gui, Add, Button, x2 y30 w100 h30 gUpdateButton, Update
