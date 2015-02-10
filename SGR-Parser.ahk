@@ -8,7 +8,7 @@
 ;Compile Options
 ;~~~~~~~~~~~~~~~~~~~~~
 StartUp()
-Version_Name = v0.2.1
+Version_Name = v0.2.3
 The_ProjectName = SGR Overview
 
 ;Dependencies
@@ -116,10 +116,10 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 	Loop, % Txt_Array.MaxIndex() {
 	Fn_GUI_UpdateProgress(A_Index, Txt_Array.MaxIndex())
 	MessageLength :=
+	TrackCode := 
 	TrackName := 
 	TimeStamp := 
 	MessageType := 
-	TrackCode := 
 	NextPost := 
 	CurrentRace :=
 	OfficialRace :=	
@@ -130,7 +130,7 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 	FULL_MESSAGE := Txt_Array[A_Index]
 	
 	;Legacy RegEx: "message=...........[A-Z]{2}([a-zA-Z 0-7_]+[a-zA-Z_]([0-9]|\W[0-9]|\W))\W+00\d+([A-Z]|[A-Z0-9]){3}"
-	TrackCode := Fn_QuickRegEx(FULL_MESSAGE,"\W{2}00\d+(\w{3})")
+	TrackCode := Fn_QuickRegEx(FULL_MESSAGE,"\W{2}00...(\w{3})")
 		If (TrackCode != "") {
 		REG := "[A-Z]{2}\d+[A-Z]{2}(.*\b)\W+\d+" . TrackCode
 		TrackName := Fn_QuickRegEx(FULL_MESSAGE,REG)
@@ -149,10 +149,10 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 		REG := TrackCode . "\d\w+\W+(\d{2})"
 		CurrentRace := Fn_QuickRegEx(FULL_MESSAGE,REG)
 			;Is this track official?
-			If (InStr(FULL_MESSAGE,"TRACK      OFFICIAL") && TrackCode != "null") {
+			If (InStr(FULL_MESSAGE,"OFFICIAL") && TrackCode != "null") {
 			TrackOfficial := 1
 				;Which race is official exactly?
-				REG := TrackCode . "\d+\W+(\d{2})"
+				REG := TrackCode . "\d+\w*\W+(\d{2})"
 				OfficialRace := Fn_QuickRegEx(FULL_MESSAGE,REG)
 			} Else {
 			TrackOfficial := 0
@@ -218,13 +218,16 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 				
 				; PB - ##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##
 				If (MessageType = "PB") {
+					;Don't rember
 					If (AllTracks_Array[Track_Index,"CurrentRace"] != AllTracks_Array[Track_Index,"ProbableRace"]) {
 					AllTracks_Array[Track_Index,"ProbableType"] := ""
 					}
+					;Nope
 					If (MessageType = "PB" && ProbableType != "null") {
 					AllTracks_Array[Track_Index,"ProbableType"] := AllTracks_Array[Track_Index,"ProbableType"] . A_Space . ProbableType
 					AllTracks_Array[Track_Index,"ProbableRace"] := ProbableRace
 					}
+					;If the message includes a 99/1 odds for 3 different runners. WEAK
 					If (InStr(FULL_MESSAGE,"000099999800009999980000999998")) {
 					AllTracks_Array[Track_Index,"PB_99"] := 1
 					} Else {
@@ -234,9 +237,11 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 				
 				;RI - ##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##
 				If (MessageType = "RI") {
+					;save the current official flagged race
 					If (OfficialRace != "null") {
 					AllTracks_Array[Track_Index,"OfficialRace"] := OfficialRace
 					}
+					;save the CurrentRace
 					If (NextPost != "null") {
 					AllTracks_Array[Track_Index,"NextPost"] := NextPost
 					AllTracks_Array[Track_Index,"CurrentRace"] := CurrentRace
@@ -302,31 +307,31 @@ Loop, % AllTracks_Array.MaxIndex() {
 	;Msgbox, % MTP
 		If (PB > 300 && MTP < 30 || PB = "") {
 		AllTracks_Array[A_Index,"Score"] += -100
-		AllTracks_Array[A_Index,"Comment"] := "PB MISSING Feature Probables Messages"
+		AllTracks_Array[A_Index,"Comment"] := "PB MISSING - Feature Probables Messages"
 		}
 		If (RN > 300 && MTP < 30 || RN = "") {
 		AllTracks_Array[A_Index,"Score"] += -100
-		AllTracks_Array[A_Index,"Comment"] := "RN MISSING Scratched Runner Messages"
+		AllTracks_Array[A_Index,"Comment"] := "RN MISSING - Scratched Runner Messages"
 		}
 		If (PS > 300 && MTP < 30 || PS = "") {
 		AllTracks_Array[A_Index,"Score"] += -100
-		AllTracks_Array[A_Index,"Comment"] := "PS MISSING Scratched Pools Messages"
+		AllTracks_Array[A_Index,"Comment"] := "PS MISSING - Scratched Pools Messages"
 		}
 		If (PT > 300 && MTP < 30 || PT = "") {
 		AllTracks_Array[A_Index,"Score"] += -100
-		AllTracks_Array[A_Index,"Comment"] := "PT MISSING Pool Totals Messages"
+		AllTracks_Array[A_Index,"Comment"] := "PT MISSING - Pool Totals Messages"
 		}
 		If (SP > 300 && MTP < 30 || SP = "") {
 		AllTracks_Array[A_Index,"Score"] := -100
-		AllTracks_Array[A_Index,"Comment"] := "SP MISSING WPS Probables Messages"
+		AllTracks_Array[A_Index,"Comment"] := "SP MISSING - WPS Probables Messages"
 		}
 		If (WO > 300 && MTP < 30 || WO = "") {
 		AllTracks_Array[A_Index,"Score"] += -100
-		AllTracks_Array[A_Index,"Comment"] := "WO MISSING Win Odds Messages"
+		AllTracks_Array[A_Index,"Comment"] := "WO MISSING - Win Odds Messages"
 		}
 		If (WR > 300 && MTP < 30 || WR = "") {
 		AllTracks_Array[A_Index,"Score"] += -100
-		AllTracks_Array[A_Index,"Comment"] := "WR MISSING WPS Totals Messages"
+		AllTracks_Array[A_Index,"Comment"] := "WR MISSING - WPS Totals Messages"
 		}
 		If (AllTracks_Array[A_Index,"ProbableType"] = " " && MTP < 10) ;This needs to be improved
 		{
@@ -347,7 +352,7 @@ Loop, % AllTracks_Array.MaxIndex() {
 	
 	
 	;TRACK COMPLETED?
-	If (AllTracks_Array[A_Index,"TotalRaces"] = AllTracks_Array[A_Index,"OfficialRace"]) {
+	If (AllTracks_Array[A_Index,"TotalRaces"] = AllTracks_Array[A_Index,"OfficialRace"] && AllTracks_Array[A_Index,"TotalRaces"] != "") {
 	AllTracks_Array[A_Index,"Completed"] := True
 	} Else {
 	AllTracks_Array[A_Index,"Completed"] := False
@@ -421,7 +426,6 @@ LVA_Refresh("GUI_Listview")
 
 Loop, % AllTracks_Array.MaxIndex() {
 
-
 	RI := 
 	PB := 
 	WP := 
@@ -440,6 +444,7 @@ Loop, % AllTracks_Array.MaxIndex() {
 
 ;###############Shouldn't this all be happening up in the logic area? Move when time permits###############
 ;Also work with oldest possible message. Dunno; think about it; might not have all types of messages all the time
+
 
 ;Convert last timestamp to easy to work with age of last message
 TimeDifference := Fn_IsTimeClose(AllTracks_Array[A_Index,"TimeStamp"],0,"s")
@@ -463,7 +468,6 @@ TimeString := " sec"
 		AllTracks_Array[A_Index,"Late"] := 2
 		AllTracks_Array[A_Index,"Score"] += -100 ;This does nothing right now because sort happens earlier
 		}
-	
 	}
 TimeDifference := TimeDifference . TimeString
 
@@ -489,21 +493,22 @@ TimeDifference := TimeDifference . TimeString
 	
 MTP := 
 MTP := Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})") . ":" . Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})$")
-MTP := Fn_IsTimeClose(MTP,1)
+MTP := Fn_IsTimeClose(MTP,1,"m")
 
-	If (AllTracks_Array[A_Index,"Completed"] = False) {
+	;If (AllTracks_Array[A_Index,"Completed"] = False)
+	If (1) {
 	;Note some fields have extra A_Space or "   " appended to help with LV_ModifyCol() later. modifying each column is resource intensive for overloaded wallboard monitors
-	LV_Add("",AllTracks_Array[A_Index,"TrackName"],AllTracks_Array[A_Index,"TrackCode"],MTP,AllTracks_Array[A_Index,"CurrentRace"] . "/" . AllTracks_Array[A_Index,"TotalRaces"],TimeDifference,PB . "   ",WP . "   ",AllTracks_Array[A_Index,"Comment"])
+	LV_Add("",AllTracks_Array[A_Index,"TrackName"],AllTracks_Array[A_Index,"TrackCode"],MTP,AllTracks_Array[A_Index,"CurrentRace"] . "/" . AllTracks_Array[A_Index,"TotalRaces"],TimeDifference . "   ",PB . "   ",WP . "   ",AllTracks_Array[A_Index,"Comment"])
+	}
+	
+	If(TimeDifference = "") {
+	LVA_SetCell("GUI_Listview", A_Index, 3, "Red")
 	}
 }
 
-Loop, % AllTracks_Array.MaxIndex() {
-	If (AllTracks_Array[A_Index,"Completed"] = True) {
-	LV_Add("",AllTracks_Array[A_Index,"TrackName"],AllTracks_Array[A_Index,"TrackCode"],"",AllTracks_Array[A_Index,"CurrentRace"] . "/" . AllTracks_Array[A_Index,"TotalRaces"],"","","","")
-	}
-}
 
 
+;Note some fields have extra A_Space or "   " appended to help with LV_ModifyCol() later. modifying each column is resource intensive for overloaded wallboard monitors
 Fn_ExportArray(AllTracks_Array,"MainDB")
 LV_ModifyCol()
 LV_ModifyCol(1, 160)
