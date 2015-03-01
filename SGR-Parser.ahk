@@ -8,7 +8,7 @@
 ;Compile Options
 ;~~~~~~~~~~~~~~~~~~~~~
 StartUp()
-Version_Name = v0.2.3
+Version_Name = v0.2.4
 The_ProjectName = SGR Overview
 
 ;Dependencies
@@ -384,7 +384,6 @@ Loop, % AllTracks_Array.MaxIndex() {
 	AllTracks_Array[A_Index,"Color"] := "Yellow"
 	}
 	
-
 	
 	;Color Completed Tracks
 	If (AllTracks_Array[A_Index,"Completed"] = True) {
@@ -393,13 +392,13 @@ Loop, % AllTracks_Array.MaxIndex() {
 	Continue
 	}
 	
+	
 	;Color Ignored Tracks
 	If (AllTracks_Array[A_Index,"Ignored"] = True) {
 	AllTracks_Array[A_Index,"Color"] := "DarkGrey"
 	AllTracks_Array[A_Index,"Score"] := 999
 	Continue
 	}
-	
 	
 	
 	;Color Good Tracks
@@ -457,10 +456,11 @@ TimeString := " sec"
 		If (TimeDifference > 3) {
 		AllTracks_Array[A_Index,"Late"] := 1
 		AllTracks_Array[A_Index,"Score"] += -100 ;This does nothing right now because sort happens earlier
-		LVA_SetCell("GUI_Listview", A_Index, 5, "ffbe03")
+		;LVA_SetCell("GUI_Listview", A_Index, 5, "ffbe03")
 		}
 		If (TimeDifference > 5) {
-		LVA_SetCell("GUI_Listview", A_Index, 5, "Red")
+		AllTracks_Array[A_Index,"Score"] += -100
+		;LVA_SetCell("GUI_Listview", A_Index, 5, "Red")
 		}
 		If (TimeDifference >= 60) {
 		TimeDifference := Fn_IsTimeClose(AllTracks_Array[A_Index,"TimeStamp"],0,"h")
@@ -473,13 +473,13 @@ TimeDifference := TimeDifference . TimeString
 
 
 	If (AllTracks_Array[A_Index,"Color"] = "Red") {
-	LVA_SetCell("GUI_Listview", A_Index, 0, "Red")
+	LVA_SetCell("GUI_Listview", A_Index, 0, "9551ff") ;Previously Red "Red"
 	}
 	If (AllTracks_Array[A_Index,"Color"] = "Orange") {
-	LVA_SetCell("GUI_Listview", A_Index, 0, "FF6600")
+	LVA_SetCell("GUI_Listview", A_Index, 0, "5153ff") ;Previously Orange "FF6600"
 	}
 	If (AllTracks_Array[A_Index,"Color"] = "Yellow") {
-	LVA_SetCell("GUI_Listview", A_Index, 0, "FFCC00")
+	LVA_SetCell("GUI_Listview", A_Index, 0, "5182ff") ;Previously Yellow "FFCC00"
 	}
 	If (AllTracks_Array[A_Index,"Color"] = "None") {
 	LVA_SetCell("GUI_Listview", A_Index, 0, "FFFFFF")
