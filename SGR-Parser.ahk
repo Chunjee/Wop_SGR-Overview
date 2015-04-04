@@ -8,7 +8,7 @@
 ;Compile Options
 ;~~~~~~~~~~~~~~~~~~~~~
 StartUp()
-Version_Name = v0.2.4
+Version_Name = v0.2.5
 The_ProjectName = SGR Overview
 
 ;Dependencies
@@ -64,14 +64,21 @@ The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
 	If (The_SystemName = "" || The_SystemName = "null") {
 	Msgbox, There was a problem reading the system name, please check SGR_Locations.txt and try again.
 	Return
+	}	
+;Grab delay time for current selected datafeed
+Loop, % SGRDatafeeds_Array.MaxIndex()
+{
+	If (SGRDatafeeds_Array[A_Index,"SystemName"] = The_SystemName) {
+	MTPDelay := SGRDatafeeds_Array[A_Index,"Delay"]
 	}
 
+}
 ;Clear both Objects and re-import any existing data for today (so we don't forget about tracks
 Txt_Array := []
 AllTracks_Array := Fn_ImportDBData(AllTracks_Array,"MainDB")
 IgnoredTracks := Fn_ImportDBData(AllTracks_Array,"IgnoredDB")
 
-;Special variable numbers for progressbar 
+;Special variable numbers for progressbar
 WM_USER               := 0x00000400
 PBM_SETMARQUEE        := WM_USER + 10
 PBM_SETSTATE          := WM_USER + 16
@@ -94,11 +101,6 @@ DllCall("User32.dll\SendMessage", "Ptr", MARQ1, "Int", PBM_SETMARQUEE, "Ptr", 1,
 SGR_Location = \\%The_SystemName%\tvg\LogFiles\%The_Month%-%The_Day%-%The_Year%\SGRData%The_Month%-%The_Day%-%The_Year%.txt
 ;Clear temp folder and copy selected SGR datafile from production to temp location
 ;FilePath_SGRDir = %A_ScriptDir%\Data\Temp\%The_SystemName%
-FilePath_SGRSplitSpecialCredentials = \\%The_SystemName%\c$\TVG\LogFiles\Split
-FilePath_SGRSplit = \\%The_SystemName%\TVG\LogFiles\Split
-FilePath_SGRTemp = %A_ScriptDir%\Data\Temp\%The_SystemName%\Current_SGR.txt
-;FileRemoveDir, %FilePath_SGRSplit%, 1
-;FileCreateDir, %FilePath_SGRSplit%
 
 
 ;Read the last 2000 lines from the SGR file. Returns an array object with each line as an element
@@ -289,12 +291,13 @@ Loop, % AllTracks_Array.MaxIndex() {
 	MTP := 
 	MTP := Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})") . ":" . Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})$")
 	MTP := Fn_IsTimeClose(MTP,1,"m")
+	MTP := MTP - MTPDelay
+	
 	;If (AllTracks_Array[A_Index,"ProbableType"] = "" && MTP < 30) {
 	;AllTracks_Array[A_Index,"Color"] := "Orange"
 	;AllTracks_Array[A_Index,"Comment"] := "No Probable data for upcoming current race"
 	;}
 	
-
 	RI := Fn_IsTimeClose(AllTracks_Array[A_Index,"RI"])
 	PB := Fn_IsTimeClose(AllTracks_Array[A_Index,"PB"])
 	RN := Fn_IsTimeClose(AllTracks_Array[A_Index,"RN"])
@@ -494,6 +497,7 @@ TimeDifference := TimeDifference . TimeString
 MTP := 
 MTP := Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})") . ":" . Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})$")
 MTP := Fn_IsTimeClose(MTP,1,"m")
+MTP := MTP - MTPDelay
 
 	;If (AllTracks_Array[A_Index,"Completed"] = False)
 	If (1) {
@@ -669,6 +673,8 @@ MemoryFile := ;Blank
 BuildGUI()
 {
 Global
+SGRDatafeeds_Array := []
+
 Gui, Add, Text, x440 y3 w100 +Right, %Version_Name%
 Gui, Add, Tab, x2 y0 h900 w550  , Main|Options
 ;Gui, Tab, Scratches
@@ -683,14 +689,24 @@ Gui, Add, Progress, x2 y60 w100 h10 hwndMARQ1 vUpdateProgress, 0
 
 	Loop, Read, %A_ScriptDir%\Data\SGR_Locations.txt 
 	{
-	SmallList .= Fn_QuickRegEx(A_LoopReadLine,"(.+)#") . "   " . Fn_QuickRegEx(A_LoopReadLine,"#\\\\(\w+)\\") . "|"
+	SystemName := Fn_QuickRegEx(A_LoopReadLine,"#\\\\(.+\d)\\")
+	FilePath := Fn_QuickRegEx(A_LoopReadLine,"#(\\\\.+)")
+	ShortName := Fn_QuickRegEx(A_LoopReadLine,"(.+)#\d")
+	Delay := Fn_QuickRegEx(A_LoopReadLine,"#(\d+)")
+	
+	;Create small list of display options for dropdown selector
+	DataFeed_List .= ShortName . "   " . SystemName . "|"
 		;Add extra pipe to first item so it is the default selected by GUI
 		If (A_Index = 1) {
-		SmallList .= "|"
+		DataFeed_List .= "|"
 		}
+	SGRDatafeeds_Array[A_Index,"SystemName"] := SystemName
+	SGRDatafeeds_Array[A_Index,"FilePath"] := FilePath
+	SGRDatafeeds_Array[A_Index,"ShortName"] := ShortName
+	SGRDatafeeds_Array[A_Index,"Delay"] := Delay
 	}
 Gui, Font, s13 w700, Arial
-Gui, Add, DropDownList, x102 y32 w200 vSGR_Choice, %SmallList%
+Gui, Add, DropDownList, x102 y32 w200 vSGR_Choice, %DataFeed_List%
 
 Gui, Font, s6 w10, Arial
 ;Gui, Add, Text, x360 y30, Unhandled / Scratches
