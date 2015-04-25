@@ -8,7 +8,7 @@
 ;Compile Options
 ;~~~~~~~~~~~~~~~~~~~~~
 StartUp()
-Version_Name = v0.2.5
+Version_Name = v0.2.6BugHunt
 The_ProjectName = SGR Overview
 
 ;Dependencies
@@ -27,8 +27,9 @@ The_ProjectName = SGR Overview
 Sb_RemoteShutDown() ;Allows for remote shutdown
 ;###Invoke and set Global Variables
 StartInternalGlobals()
-RecalculateToday := 1
+RecalculateToday = 1
 Fn_DailyRestart(02) ;Perform daily restart of data at 02:00AM	
+
 
 ;~~~~~~~~~~~~~~~~~~~~~
 ;GUI
@@ -44,18 +45,17 @@ Return
 
 ;User pressed Update Button or automatic Timer has expired
 UpdateButton:
-DiableAllButtons()
+;DiableAllButtons()
 
 ;clear some vars
-UnknownmessageCounter := 0
+The_UnknownmessageCounter := 0
 Fn_GUI_UpdateProgress(0)
 
-;Get today's date and convert into seprate vars
+;Get today's date and convert into separate vars
 	If (RecalculateToday = 1) {
-	FormatTime, Full_CDATE, , dd-MM-yyyy
-	The_Day := Fn_QuickRegEx(Full_CDATE,"(\d{2})-")
-	The_Month := Fn_QuickRegEx(Full_CDATE,"-(\d{2})-")
-	The_Year := Fn_QuickRegEx(Full_CDATE,"(\d{4})")
+	The_Day := A_DD
+	The_Month := A_MM
+	The_Year := A_YYYY
 	}
 
 ;Get user selected or default SGR location and convert into full path to file
@@ -71,30 +71,30 @@ Loop, % SGRDatafeeds_Array.MaxIndex()
 	If (SGRDatafeeds_Array[A_Index,"SystemName"] = The_SystemName) {
 	MTPDelay := SGRDatafeeds_Array[A_Index,"Delay"]
 	}
-
 }
+
 ;Clear both Objects and re-import any existing data for today (so we don't forget about tracks
 Txt_Array := []
 AllTracks_Array := Fn_ImportDBData(AllTracks_Array,"MainDB")
 IgnoredTracks := Fn_ImportDBData(AllTracks_Array,"IgnoredDB")
 
 ;Special variable numbers for progressbar
-WM_USER               := 0x00000400
-PBM_SETMARQUEE        := WM_USER + 10
-PBM_SETSTATE          := WM_USER + 16
-PBS_MARQUEE           := 0x00000008
-PBS_SMOOTH            := 0x00000001
-PBS_VERTICAL          := 0x00000004
-PBST_NORMAL           := 0x00000001
-PBST_ERROR            := 0x00000002
-PBST_PAUSE            := 0x00000003
-STAP_ALLOW_NONCLIENT  := 0x00000001
-STAP_ALLOW_CONTROLS   := 0x00000002
-STAP_ALLOW_WEBCONTENT := 0x00000004
-WM_THEMECHANGED       := 0x0000031A
+;WM_USER               := 0x00000400
+;PBM_SETMARQUEE        := WM_USER + 10
+;PBM_SETSTATE          := WM_USER + 16
+;PBS_MARQUEE           := 0x00000008
+;PBS_SMOOTH            := 0x00000001
+;PBS_VERTICAL          := 0x00000004
+;PBST_NORMAL           := 0x00000001
+;PBST_ERROR            := 0x00000002
+;PBST_PAUSE            := 0x00000003
+;STAP_ALLOW_NONCLIENT  := 0x00000001
+;STAP_ALLOW_CONTROLS   := 0x00000002
+;STAP_ALLOW_WEBCONTENT := 0x00000004
+;WM_THEMECHANGED       := 0x0000031A
 ;Apply special effects to the progressbar for temporary marquee effect
-GuiControl, +%PBS_MARQUEE%, UpdateProgress
-DllCall("User32.dll\SendMessage", "Ptr", MARQ1, "Int", PBM_SETMARQUEE, "Ptr", 1, "Ptr", 50)
+;GuiControl, +%PBS_MARQUEE%, UpdateProgress
+;DllCall("User32.dll\SendMessage", "Ptr", MARQ1, "Int", PBM_SETMARQUEE, "Ptr", 1, "Ptr", 50)
 
 
 
@@ -104,18 +104,22 @@ SGR_Location = \\%The_SystemName%\tvg\LogFiles\%The_Month%-%The_Day%-%The_Year%\
 
 
 ;Read the last 2000 lines from the SGR file. Returns an array object with each line as an element
-Txt_Array := Fn_FileTail(SGR_Location, 2000)
+Txt_Array := Fn_FileTail(SGR_Location, 2000) 
 
-;Clear file from memory because it can be big
-File_SGR := 
 
+	If (Txt_Array.MaxIndex() <= 0){
+	FileAppend, %A_Now% - Empty Text Array, %A_ScriptDir%\ErrorLog.txt
+	}
+	
+	
 ;Remove special options from progressbar and go back to normal
 Fn_GUI_UpdateProgress(0)
 GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 
 
 	;Read Each line of the new Txt_Array for relevant messages, pull trackname and trackcode out
-	Loop, % Txt_Array.MaxIndex() {
+	Loop, % Txt_Array.MaxIndex() 
+	{
 	Fn_GUI_UpdateProgress(A_Index, Txt_Array.MaxIndex())
 	MessageLength :=
 	TrackCode := 
@@ -130,6 +134,10 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 	TotalRaces := 
 	;Faster to read from var than object?
 	FULL_MESSAGE := Txt_Array[A_Index]
+		If (StrLen(FULL_MESSAGE) <= 3) {
+		FileAppend, %A_Now% - Very short Message: %FULL_MESSAGE%, %A_ScriptDir%\ErrorLog.txt
+		}
+		
 	
 	;Legacy RegEx: "message=...........[A-Z]{2}([a-zA-Z 0-7_]+[a-zA-Z_]([0-9]|\W[0-9]|\W))\W+00\d+([A-Z]|[A-Z0-9]){3}"
 	TrackCode := Fn_QuickRegEx(FULL_MESSAGE,"\W{2}00...(\w{3})")
@@ -139,7 +147,8 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 		TimeStamp := Fn_QuickRegEx(FULL_MESSAGE,"timestamp=.\d{2}\/\d{2}\/\d{4}\W(\d{2}:\d{2})")
 		MessageType := Fn_QuickRegEx(FULL_MESSAGE,"message=...........([A-Z]{2})")
 		} Else {
-		UnknownmessageCounter++
+		The_UnknownmessageCounter++
+		Continue
 		}
 
 		; RI - RACE INFORMATION MESSAGE TYPE ##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##
@@ -202,16 +211,6 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 			
 			
 			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
 			;Ok insert data to correct track; New track is done being added/Existing track is selected
 			AllTracks_Array[Track_Index,MessageType] := TimeStamp ;Note this is sending timestamp to MessageType not "MessageType"; its an element deeper in the array
 			AllTracks_Array[Track_Index,"TimeStamp"] := TimeStamp
@@ -261,13 +260,12 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 				}
 				
 		} Else {
-		UnknownmessageCounter++
-		;FileAppend, %FULL_MESSAGE%`n, %A_ScriptDir%\unaccountedmessages.txt
-		;clipboard := Txt_Array[A_Index]
+		The_UnknownmessageCounter++
+		Continue
 		}
 	}
 	Txt_Array := []
-;Msgbox, % UnknownmessageCounter
+;Msgbox, % The_UnknownmessageCounter
 
 
 ;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
@@ -284,6 +282,7 @@ Loop, % AllTracks_Array.MaxIndex() {
 	
 	;Remove any tracks with no TrackCode. This should always be impossible if our data import is very strong
 	If (AllTracks_Array[A_Index,"TrackCode"] = "") {
+	Continue
 	AllTracks_Array.Remove(A_Index)
 	}
 	
@@ -350,8 +349,6 @@ Loop, % AllTracks_Array.MaxIndex() {
 		;AllTracks_Array[A_Index,"Score"] := -100
 		;AllTracks_Array[A_Index,"Comment"] := "MISSING WillPay Messages"
 		;}
-		
-;Msgbox, % AllTracks_Array[A_Index,"Score"]
 	
 	
 	;TRACK COMPLETED?
@@ -373,7 +370,7 @@ Loop, % AllTracks_Array.MaxIndex() {
 }
 
 
-;Determine color be score
+;Determine color by score
 Loop, % AllTracks_Array.MaxIndex() {
 
 	;Color Bad Scores
@@ -428,13 +425,10 @@ LVA_Refresh("GUI_Listview")
 
 Loop, % AllTracks_Array.MaxIndex() {
 
-	RI := 
-	PB := 
 	WP := 
-	If (AllTracks_Array[A_Index,"RI"] != "")
-	{
-	RI = ✓
-	}
+	PB :=
+	
+	
 	If (AllTracks_Array[A_Index,"ProbableType"] != "null" && AllTracks_Array[A_Index,"PB_99"] != 1)
 	{
 	PB := AllTracks_Array[A_Index,"ProbableType"]
@@ -445,7 +439,7 @@ Loop, % AllTracks_Array.MaxIndex() {
 	}
 
 ;###############Shouldn't this all be happening up in the logic area? Move when time permits###############
-;Also work with oldest possible message. Dunno; think about it; might not have all types of messages all the time
+;Also work with oldest possible message. Think about it; might not have all types of messages all the time
 
 
 ;Convert last timestamp to easy to work with age of last message
@@ -502,7 +496,7 @@ MTP := MTP - MTPDelay
 	;If (AllTracks_Array[A_Index,"Completed"] = False)
 	If (1) {
 	;Note some fields have extra A_Space or "   " appended to help with LV_ModifyCol() later. modifying each column is resource intensive for overloaded wallboard monitors
-	LV_Add("",AllTracks_Array[A_Index,"TrackName"],AllTracks_Array[A_Index,"TrackCode"],MTP,AllTracks_Array[A_Index,"CurrentRace"] . "/" . AllTracks_Array[A_Index,"TotalRaces"],TimeDifference . "   ",PB . "   ",WP . "   ",AllTracks_Array[A_Index,"Comment"])
+	LV_Add("",AllTracks_Array[A_Index,"TrackName"],AllTracks_Array[A_Index,"TrackCode"] . " ",MTP . " ",AllTracks_Array[A_Index,"CurrentRace"] . "/" . AllTracks_Array[A_Index,"TotalRaces"],TimeDifference . "   ",PB . "   ",WP . "   ",AllTracks_Array[A_Index,"Comment"])
 	}
 	
 	If(TimeDifference = "") {
@@ -515,6 +509,7 @@ MTP := MTP - MTPDelay
 ;Note some fields have extra A_Space or "   " appended to help with LV_ModifyCol() later. modifying each column is resource intensive for overloaded wallboard monitors
 Fn_ExportArray(AllTracks_Array,"MainDB")
 LV_ModifyCol()
+Sleep 100
 LV_ModifyCol(1, 160)
 ;LV_ModifyCol(2, 52) ;Track Code
 ;LV_ModifyCol(3, 46) ;MTP
@@ -522,11 +517,14 @@ LV_ModifyCol(1, 160)
 ;LV_ModifyCol(6, 50) ;Odds
 ;LV_ModifyCol(7, 40) ;Willpay
 ;LV_ModifyCol(8, 400) ;Comment
+
+;Color the Listview
 LVA_Refresh("GUI_Listview")
 OnMessage("0x4E", "LVA_OnNotify")
-Guicontrol, +ReDraw, GUI_Listview
-LVA_Refresh("GUI_Listview")
-LVA_Refresh("GUI_Listview")
+Sleep 200
+;Guicontrol, +ReDraw, GUI_Listview
+
+DiableAllButtons()
 EnableAllButtons()
 Return
 
@@ -632,11 +630,11 @@ SetTimer, DailyRestartCheck, -1200000
 DailyRestartCheck:
 	
 	If (para_RestartTime = A_HH) {
-	Restart_Bool := 1
+	Restart_Bool = 1
 	} Else {
 		If ( Restart_Bool = 1) {
-		RecalculateToday := 1
-		Restart_Bool := 0
+		RecalculateToday = 1
+		Restart_Bool = 0
 		}
 	}
 	Return
@@ -647,9 +645,14 @@ Fn_ImportDBData(para_DB,para_DBlabel)
 {
 global
 FormatTime, A_Today, , yyyyMMdd
-FileRead, MemoryFile, \\tvgops\pdxshares\wagerops\Tools\SGR-Overview\Data\DB\%A_Today%_%The_SystemName%_%Version_Name%_%para_DBlabel%.json
-Temp_Array := Fn_JSONtooOBJ(MemoryFile)
-MemoryFile := ;Blank
+ExternalDB = %A_ScriptDir%\Data\DB\%A_Today%_%The_SystemName%_%Version_Name%_%para_DBlabel%.json
+	If(FileExist(ExternalDB)) {
+	FileRead, MemoryFile, %ExternalDB%
+	Temp_Array := Fn_JSONtooOBJ(MemoryFile)
+	MemoryFile := []
+	} Else {
+	Temp_Array := []
+	}
 Return %Temp_Array%
 }
 
@@ -657,10 +660,14 @@ Return %Temp_Array%
 Fn_ExportArray(para_DB,para_DBlabel)
 {
 global
+FormatTime, A_Today, , yyyyMMdd
+ExternalDB = %A_ScriptDir%\Data\DB\%A_Today%_%The_SystemName%_%Version_Name%_%para_DBlabel%.json
+	If(FileExist(ExternalDB)) {
+	FileDelete, %ExternalDB%
+	}
 MemoryFile := Fn_JSONfromOBJ(para_DB)
-FileDelete, \\tvgops\pdxshares\wagerops\Tools\SGR-Overview\Data\DB\%A_Today%_%The_SystemName%_%Version_Name%_%para_DBlabel%.json
-FileAppend, %MemoryFile%, \\tvgops\pdxshares\wagerops\Tools\SGR-Overview\Data\DB\%A_Today%_%The_SystemName%_%Version_Name%_%para_DBlabel%.json
-MemoryFile := ;Blank
+FileAppend, %MemoryFile%, %ExternalDB%
+MemoryFile := []
 }
 
 
@@ -673,20 +680,9 @@ MemoryFile := ;Blank
 BuildGUI()
 {
 Global
+
+;Create Array and fill with data about each Data Collector
 SGRDatafeeds_Array := []
-
-Gui, Add, Text, x440 y3 w100 +Right, %Version_Name%
-Gui, Add, Tab, x2 y0 h900 w550  , Main|Options
-;Gui, Tab, Scratches
-Gui, Add, Button, x2 y30 w100 h30 gUpdateButton, Update
-;Gui, Add, Button, x102 y30 w100 h30 gCheckResults, Check Results
-;Gui, Add, Button, x202 y30 w100 h30 gShiftNotes, Open Shift Notes
-Gui, Add, Button, x302 y30 w50 h30 gViewDB, View DB
-Gui, Font, s12 w10, Arial
-Gui, Add, ListView, x2 y70 w546 h750 Grid +ReDraw gDoubleClick vGUI_Listview, Track|Code|MTP|Race|Last|Odds|WP|Comment
-Gui, Font,
-Gui, Add, Progress, x2 y60 w100 h10 hwndMARQ1 vUpdateProgress, 0
-
 	Loop, Read, %A_ScriptDir%\Data\SGR_Locations.txt 
 	{
 	SystemName := Fn_QuickRegEx(A_LoopReadLine,"#\\\\(.+\d)\\")
@@ -705,27 +701,34 @@ Gui, Add, Progress, x2 y60 w100 h10 hwndMARQ1 vUpdateProgress, 0
 	SGRDatafeeds_Array[A_Index,"ShortName"] := ShortName
 	SGRDatafeeds_Array[A_Index,"Delay"] := Delay
 	}
+	
+Gui, Add, Text, x440 y3 w100 +Right, %Version_Name%
+Gui, Add, Tab, x2 y0 h900 w550  , Main|Options
+
+;Main Tab
+Gui, Add, Button, x2 y30 w100 h30 gUpdateButton, Update
+Gui, Add, Button, x302 y30 w50 h30 gViewDB, View DB
+
 Gui, Font, s13 w700, Arial
 Gui, Add, DropDownList, x102 y32 w200 vSGR_Choice, %DataFeed_List%
 
-Gui, Font, s6 w10, Arial
-;Gui, Add, Text, x360 y30, Unhandled / Scratches
-;Gui, Add, Text, x404 y58, Effected Entries:
-Gui, Font,
+Gui, Add, Progress, x2 y60 w100 h10 hwndMARQ1 vUpdateProgress, 0
+Gui, Font, ;Reset Font to normal
 
 
+;Main View
+Gui, Font, s12 w10, Arial ;Needed so visible from far away
+Gui, Add, ListView, x2 y70 w546 h750 Grid +ReDraw gDoubleClick vGUI_Listview, Track|Code|MTP|Race|Last|Odds|WP|Comment
+
+
+
+
+;Options Tab
 Gui, Tab, Options
 Gui, Add, CheckBox, x10 y30 vGUI_RefreshCheckBox gAutoUpdate Checked, Auto-Update every
 Gui, Add, Edit, x122 y28 w30 vGUI_RefreshAmmount Number, 4
 Gui, Add, Text, x160 y30, minutes
 GUI, Submit, NoHide
-;Gui, Add, Text, x10 y60, Track codes to `"ignore`"
-;GUI, Add, Edit, x130 y60 w300 vGUI_IgnoreTracks
-
-;Gui, Add, Button, x2 y30 w100 h30 gUpdateButton, Update
-;Option_Refresh
-;Gui, Add, ListView, x2 y70 w490 h580 Grid Checked, #|Status|Name|Race
-
 
 ;Menu
 Menu, FileMenu, Add, &Update Now, UpdateButton
@@ -780,12 +783,12 @@ RefreshMilli := Fn_QuickRegEx(GUI_RefreshAmmount,"(\d+)")
 Return
 
 DoubleClick:
-;Send Horsename to Json file so it won't be highlighted
+;Send Track to Json file so it won't be highlighted
 	If A_GuiEvent = DoubleClick
 	{		
 	;Get the text from the row's fourth field. Runner Name
 	LV_GetText(RowText, A_EventInfo, 2)
-		
+	RowText = %RowText% ;Remove spaces
 		If (RowText != "") {
 		;Load any existing DB from other Ops
 		IgnoredTracks := Fn_ImportDBData(IgnoredTracks,"IgnoredDB")
@@ -802,7 +805,6 @@ DoubleClick:
 		
 		Fn_ExportArray(IgnoredTracks,"IgnoredDB")
 		}
-		;Msgbox, %RowText%
 	}
 Return
 
@@ -870,12 +872,6 @@ Gui, Destroy
 }
 
 
-Fn_MouseToolTip("No RacingChannel Data Downloaded", 10)
-MouseGetPos, M_PosX, M_PosY, WinID
-ToolTip, "No RacingChannel Data Downloaded", M_PosX, M_PosY, 1
-ToolTip
-	
-	
 GuiClose:
 ExitApp
 

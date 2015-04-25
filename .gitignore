@@ -4,9 +4,9 @@
 Data/SDL-Temp/
 Data/later/
 Data/Temp/
-
-
-
+Data/DB
+ErrorLog.txt
+*messages.txt
 
 # Windows image file caches
 Thumbs.db

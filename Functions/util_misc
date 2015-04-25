@@ -1,12 +1,12 @@
-﻿; Version 0.4 by
+﻿; Version 0.5 by
 ;_________  __                   __             
 ;\    ___ \|  |__  __ __  ____  |__| ____  ____ 
 ;/    \  \/|  |  \|  |  \/    \ |  |/ __ \/ __ \
 ;\     \___|      \  |  /   |  \|  |  ___|  ___|
 ; \________/___|  /____/|_/\|__/|  |\____/_____/
 ;               \/        \________|     Chunjee
-; This software is copyright or something 2013 - DownloadMob.com - all rights reserved.
-; Do not redistribute or release executables.
+; This software is copyright or something 2015 - DownloadMob.com - all rights reserved.
+; Do not redistribute or make available for download in any form
 
 
 ;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
@@ -25,6 +25,19 @@ Fn_QuickRegEx(para_Input,para_RegEx,para_ReturnValue := 1)
 	}
 Return "null"
 }
+
+
+;Quick boolean for Regex Patterns.+ Returns 1 on match or 0 on no match
+Fn_BoolRegEx(para_Input,para_RegEx,para_MatchValue := 1)
+{
+	RegExMatch(para_Input, para_RegEx, RE_Match)
+	If (RE_Match%para_MatchValue% != "")
+	{
+	Return True
+	}
+Return False
+}
+
 
 Fn_ReplaceString(para_1,para_2,para_String) {
 StringReplace, l_Newstring, para_String, %para_1%, %para_2%, All
