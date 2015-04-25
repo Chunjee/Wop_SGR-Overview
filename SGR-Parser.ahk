@@ -36,7 +36,7 @@ Fn_DailyRestart(02) ;Perform daily restart of data at 02:00AM
 ;~~~~~~~~~~~~~~~~~~~~~
 BuildGUI()
 LVA_ListViewAdd("GUI_Listview")
-Return
+;Return
 
 
 ;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
@@ -64,7 +64,15 @@ The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
 	If (The_SystemName = "" || The_SystemName = "null") {
 	Msgbox, There was a problem reading the system name, please check SGR_Locations.txt and try again.
 	Return
-	}	
+	}
+
+	;Select blah blah 
+	If (FileExist(A_ScriptDir . "\Restart.txt")) {
+	FileRead, The_MemoryFile, %A_ScriptDir%\Restart.txt
+	The_SystemName := Fn_QuickRegEx(The_MemoryFile,"SystemName:(\w+)")
+	FileDelete, %A_ScriptDir%\Restart.txt
+	}
+	
 ;Grab delay time for current selected datafeed
 Loop, % SGRDatafeeds_Array.MaxIndex()
 {
@@ -680,7 +688,8 @@ MemoryFile := []
 BuildGUI()
 {
 Global
-
+SetTimer, Menu_File-Restart, -10800000	
+	
 ;Create Array and fill with data about each Data Collector
 SGRDatafeeds_Array := []
 	Loop, Read, %A_ScriptDir%\Data\SGR_Locations.txt 
@@ -763,6 +772,8 @@ MsgEffectedEntries:
 Msgbox, This shows the number of coupled entries effected by scratches (1,1A,1X are considered a single entry)
 Return
 
+
+
 ;Options
 AutoUpdate:
 GUI, Submit, NoHide
@@ -819,7 +830,15 @@ Msgbox, Checks selected SGR Datafile for up to date data.
 Return
 
 Menu_File-Restart:
+
+
+
+Gui, Submit, NoHide
+The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
+WinGetPos, X, Y
+FileAppend, x:%X% y:%Y% SystemName:%The_SystemName%`n`r, Restart.txt
 Reload
+
 Menu_File-Quit:
 ExitApp
 
