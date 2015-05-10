@@ -494,6 +494,8 @@ MTP :=
 MTP := Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})") . ":" . Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})$")
 MTP := Fn_IsTimeClose(MTP,1,"m")
 MTP := MTP - MTPDelay
+;Add MTP to Array for use anywhere else we need
+AllTracks_Array[A_Index,"MTP"] := MTP
 
 	;If (AllTracks_Array[A_Index,"Completed"] = False)
 	If (1) {
@@ -564,9 +566,7 @@ A_LF := "`n"
 FileCreateDir, %A_ScriptDir%\Data
 FileCreateDir, %A_ScriptDir%\Data\DB
 FileCreateDir, %A_ScriptDir%\Data\Temp
-FileInstall, Data\SGR_Locations.txt, %A_ScriptDir%\Data\SGR_Locations.txt, 1
-;DEPRECIATED ;FileInstall, Functions\FileCopy.exe, %A_ScriptDir%\Data\FileCopy.exe, 1
-;DEPRECIATED ;FileInstall, Data\swissfileknife_172.exe, %A_ScriptDir%\Data\swissfileknife_172.exe, 1
+FileInstall, Data\SGR_Locations.txt, %A_ScriptDir%\Data\SGR_Locations.txt, 0
 }
 
 
