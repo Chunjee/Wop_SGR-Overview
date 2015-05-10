@@ -1,13 +1,4 @@
-﻿; Version 0.5 by
-;_________  __                   __             
-;\    ___ \|  |__  __ __  ____  |__| ____  ____ 
-;/    \  \/|  |  \|  |  \/    \ |  |/ __ \/ __ \
-;\     \___|      \  |  /   |  \|  |  ___|  ___|
-; \________/___|  /____/|_/\|__/|  |\____/_____/
-;               \/        \________|     Chunjee
-; This software is copyright or something 2015 - DownloadMob.com - all rights reserved.
-; Do not redistribute or make available for download in any form
-
+﻿; Version 0.5 of all around useful functions
 
 ;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
 ; Functions
@@ -26,22 +17,33 @@ Fn_QuickRegEx(para_Input,para_RegEx,para_ReturnValue := 1)
 Return "null"
 }
 
-
-;Quick boolean for Regex Patterns.+ Returns 1 on match or 0 on no match
-Fn_BoolRegEx(para_Input,para_RegEx,para_MatchValue := 1)
-{
-	RegExMatch(para_Input, para_RegEx, RE_Match)
-	If (RE_Match%para_MatchValue% != "")
-	{
-	Return True
-	}
-Return False
-}
-
-
 Fn_ReplaceString(para_1,para_2,para_String) {
 StringReplace, l_Newstring, para_String, %para_1%, %para_2%, All
 Return l_Newstring
+}
+
+Fn_InArray(Obj,para_Search,para_Table := "")
+{
+	If (para_Table = "") {
+		Loop % Obj.MaxIndex() {
+			If(Obj[A_Index] = para_Search)	{
+			Return 1
+			}
+		}
+		;Return 0 if the search did not find any match
+		Return 0
+	}
+	
+	If (para_Table != "") {
+		Loop % Obj.MaxIndex() {
+			If(Obj[A_Index,para_Table] = para_Search)	{
+			Return 1
+			}
+		}
+		;Return 0 if the search did not find any match
+		Return 0
+	}
+Return 0
 }
 
 Fn_SearchArrayReturnOther(Obj,para_Search,para_SearchTable,para_ReturnTable)

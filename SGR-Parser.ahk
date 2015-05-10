@@ -1,14 +1,15 @@
 ﻿;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
 ; Description
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
-; Checks each platform for willpay and probable data
+; Checks each platform for willpay and probable data. Hopefully it can eventually illuminate other problems at tote
 ;
 
 ;~~~~~~~~~~~~~~~~~~~~~
 ;Compile Options
 ;~~~~~~~~~~~~~~~~~~~~~
+SetBatchLines -1 ;Go as fast as CPU will allow
 StartUp()
-Version_Name = v0.2.6BugHunt
+Version_Name = v0.3.3
 The_ProjectName = SGR Overview
 
 ;Dependencies
@@ -28,9 +29,9 @@ Sb_RemoteShutDown() ;Allows for remote shutdown
 ;###Invoke and set Global Variables
 StartInternalGlobals()
 RecalculateToday = 1
-Fn_DailyRestart(02) ;Perform daily restart of data at 02:00AM	
-
-
+Fn_DailyRestart(02) ;Perform daily restart of data at 02:00AM
+	
+	
 ;~~~~~~~~~~~~~~~~~~~~~
 ;GUI
 ;~~~~~~~~~~~~~~~~~~~~~
@@ -64,13 +65,6 @@ The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
 	If (The_SystemName = "" || The_SystemName = "null") {
 	Msgbox, There was a problem reading the system name, please check SGR_Locations.txt and try again.
 	Return
-	}
-
-	;Select blah blah 
-	If (FileExist(A_ScriptDir . "\Restart.txt")) {
-	FileRead, The_MemoryFile, %A_ScriptDir%\Restart.txt
-	The_SystemName := Fn_QuickRegEx(The_MemoryFile,"SystemName:(\w+)")
-	FileDelete, %A_ScriptDir%\Restart.txt
 	}
 	
 ;Grab delay time for current selected datafeed
@@ -689,6 +683,17 @@ BuildGUI()
 {
 Global
 SetTimer, Menu_File-Restart, -10800000	
+;SetTimer, Menu_File-Restart, -240000	;FOR DEBUG ONLY
+
+	;Select blah blah 
+	RestartFile_Location := A_ScriptDir . "\Restart.txt"
+	If (FileExist(RestartFile_Location)) {
+	FileRead, The_MemoryFile, % RestartFile_Location
+	The_DefaultSystemName := Fn_QuickRegEx(The_MemoryFile,"SystemName:(\w+)")
+	X := Fn_QuickRegEx(The_MemoryFile,"x:(\d+)")
+	Y := Fn_QuickRegEx(The_MemoryFile,"y:(\d+)")
+	FileDelete, % RestartFile_Location
+	}
 	
 ;Create Array and fill with data about each Data Collector
 SGRDatafeeds_Array := []
@@ -699,12 +704,22 @@ SGRDatafeeds_Array := []
 	ShortName := Fn_QuickRegEx(A_LoopReadLine,"(.+)#\d")
 	Delay := Fn_QuickRegEx(A_LoopReadLine,"#(\d+)")
 	
+	If (The_DefaultSystemName != "" && InStr(SystemName,The_DefaultSystemName)) {
+	makedefault = 1
+	} Else {
+	makedefault = 0
+	}
+		
 	;Create small list of display options for dropdown selector
 	DataFeed_List .= ShortName . "   " . SystemName . "|"
 		;Add extra pipe to first item so it is the default selected by GUI
-		If (A_Index = 1) {
+		If (A_Index = 1 && The_DefaultSystemName = "") {
 		DataFeed_List .= "|"
 		}
+		If (makedefault) {
+		DataFeed_List .= "|"
+		}
+		
 	SGRDatafeeds_Array[A_Index,"SystemName"] := SystemName
 	SGRDatafeeds_Array[A_Index,"FilePath"] := FilePath
 	SGRDatafeeds_Array[A_Index,"ShortName"] := ShortName
@@ -735,7 +750,7 @@ Gui, Add, ListView, x2 y70 w546 h750 Grid +ReDraw gDoubleClick vGUI_Listview, Tr
 ;Options Tab
 Gui, Tab, Options
 Gui, Add, CheckBox, x10 y30 vGUI_RefreshCheckBox gAutoUpdate Checked, Auto-Update every
-Gui, Add, Edit, x122 y28 w30 vGUI_RefreshAmmount Number, 4
+Gui, Add, Edit, x122 y28 w30 vGUI_RefreshAmmount Number, 6
 Gui, Add, Text, x160 y30, minutes
 GUI, Submit, NoHide
 
@@ -751,7 +766,14 @@ Menu, MenuBar, Add, &Help, :HelpMenu
 
 Gui, Menu, MenuBar
 
-Gui, Show, h820 w550, %The_ProjectName%
+;Show GUI in last location unless error is encountered. Use middle if screen if so
+	If (X = "null" || Y = "null" || X = "" || Y = ""){
+	X = 0
+	Y = 0
+	}
+Gui, Show, h820 w550 x%X% y%Y%, % The_ProjectName
+Sleep 100
+Gui, Show, x%X% y%Y%, % The_ProjectName
 
 ;Start Autoupdate by default
 GoSub, AutoUpdate
@@ -830,13 +852,11 @@ Msgbox, Checks selected SGR Datafile for up to date data.
 Return
 
 Menu_File-Restart:
-
-
-
 Gui, Submit, NoHide
 The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
-WinGetPos, X, Y
-FileAppend, x:%X% y:%Y% SystemName:%The_SystemName%`n`r, Restart.txt
+WinGetPos, X, Y,,, %The_ProjectName%
+FileAppend, x:%X% y:%Y% SystemName:%The_SystemName%`n`r, %A_ScriptDir%\Restart.txt
+Sleep 300
 Reload
 
 Menu_File-Quit:
