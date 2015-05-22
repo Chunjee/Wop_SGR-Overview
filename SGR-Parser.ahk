@@ -9,8 +9,8 @@
 ;~~~~~~~~~~~~~~~~~~~~~
 SetBatchLines -1 ;Go as fast as CPU will allow
 StartUp()
-Version_Name = v0.3.3
 The_ProjectName = SGR Overview
+The_VersionName = v0.3.4
 
 ;Dependencies
 #Include %A_ScriptDir%\Functions
@@ -29,8 +29,8 @@ Sb_RemoteShutDown() ;Allows for remote shutdown
 ;###Invoke and set Global Variables
 StartInternalGlobals()
 RecalculateToday = 1
-Fn_DailyRestart(02) ;Perform daily restart of data at 02:00AM
-	
+
+Fn_DailyRestart("02") ;Perform daily restart of data at 02:00AM
 	
 ;~~~~~~~~~~~~~~~~~~~~~
 ;GUI
@@ -50,13 +50,14 @@ UpdateButton:
 
 ;clear some vars
 The_UnknownmessageCounter := 0
-Fn_GUI_UpdateProgress(0)
+;Fn_GUI_UpdateProgress(0)
 
 ;Get today's date and convert into separate vars
 	If (RecalculateToday = 1) {
 	The_Day := A_DD
 	The_Month := A_MM
 	The_Year := A_YYYY
+	RecalculateToday = 0
 	}
 
 ;Get user selected or default SGR location and convert into full path to file
@@ -108,9 +109,9 @@ SGR_Location = \\%The_SystemName%\tvg\LogFiles\%The_Month%-%The_Day%-%The_Year%\
 ;Read the last 2000 lines from the SGR file. Returns an array object with each line as an element
 Txt_Array := Fn_FileTail(SGR_Location, 2000) 
 
-
-	If (Txt_Array.MaxIndex() <= 0){
-	FileAppend, %A_Now% - Empty Text Array, %A_ScriptDir%\ErrorLog.txt
+	If (Txt_Array.MaxIndex() <= 100){
+	FileAppend, `n`r%A_Now% - Empty Text Array, %A_ScriptDir%\ErrorLog.txt
+	Return
 	}
 	
 	
@@ -134,10 +135,10 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 	ProbableType :=
 	TrackOfficial := 
 	TotalRaces := 
-	;Faster to read from var than object?
+	;Faster to read from var than object? Unlikely; what is this comment about?
 	FULL_MESSAGE := Txt_Array[A_Index]
 		If (StrLen(FULL_MESSAGE) <= 3) {
-		FileAppend, %A_Now% - Very short Message: %FULL_MESSAGE%, %A_ScriptDir%\ErrorLog.txt
+		FileAppend, `n`r%A_Now% - Very short Message: %FULL_MESSAGE%, %A_ScriptDir%\ErrorLog.txt
 		}
 		
 	
@@ -421,14 +422,14 @@ Fn_Sort2DArray(AllTracks_Array, "Score")
 ; Write All Data Out to GUI
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 ;Clear out the listview for new data to appear in GUI
-LVA_EraseAllCells("GUI_Listview")
+;LVA_EraseAllCells("GUI_Listview")
 LV_Delete()
 LVA_Refresh("GUI_Listview")
 
 Loop, % AllTracks_Array.MaxIndex() {
 
-	WP := 
-	PB :=
+	WP := ""
+	PB := ""
 	
 	
 	If (AllTracks_Array[A_Index,"ProbableType"] != "null" && AllTracks_Array[A_Index,"PB_99"] != 1)
@@ -630,16 +631,11 @@ global
 ;Check every 20 mins
 SetTimer, DailyRestartCheck, -1200000
 DailyRestartCheck:
-	
-	If (para_RestartTime = A_HH) {
-	Restart_Bool = 1
-	} Else {
-		If ( Restart_Bool = 1) {
-		RecalculateToday = 1
-		Restart_Bool = 0
-		}
+	If (para_RestartTime = A_Hour) {
+	RecalculateToday = 1
+	Debug_Msg("recalculating today")
 	}
-	Return
+Return
 }
 
 ;Imports Existing DB File
@@ -647,7 +643,7 @@ Fn_ImportDBData(para_DB,para_DBlabel)
 {
 global
 FormatTime, A_Today, , yyyyMMdd
-ExternalDB = %A_ScriptDir%\Data\DB\%A_Today%_%The_SystemName%_%Version_Name%_%para_DBlabel%.json
+ExternalDB = %A_ScriptDir%\Data\DB\%A_Today%_%The_SystemName%_%The_VersionName%_%para_DBlabel%.json
 	If(FileExist(ExternalDB)) {
 	FileRead, MemoryFile, %ExternalDB%
 	Temp_Array := Fn_JSONtooOBJ(MemoryFile)
@@ -663,7 +659,7 @@ Fn_ExportArray(para_DB,para_DBlabel)
 {
 global
 FormatTime, A_Today, , yyyyMMdd
-ExternalDB = %A_ScriptDir%\Data\DB\%A_Today%_%The_SystemName%_%Version_Name%_%para_DBlabel%.json
+ExternalDB = %A_ScriptDir%\Data\DB\%A_Today%_%The_SystemName%_%The_VersionName%_%para_DBlabel%.json
 	If(FileExist(ExternalDB)) {
 	FileDelete, %ExternalDB%
 	}
@@ -682,7 +678,7 @@ MemoryFile := []
 BuildGUI()
 {
 Global
-SetTimer, Menu_File-Restart, -10800000	
+;SetTimer, Menu_File-Restart, -10800000	
 ;SetTimer, Menu_File-Restart, -240000	;FOR DEBUG ONLY
 
 	;Select blah blah 
@@ -690,8 +686,8 @@ SetTimer, Menu_File-Restart, -10800000
 	If (FileExist(RestartFile_Location)) {
 	FileRead, The_MemoryFile, % RestartFile_Location
 	The_DefaultSystemName := Fn_QuickRegEx(The_MemoryFile,"SystemName:(\w+)")
-	X := Fn_QuickRegEx(The_MemoryFile,"x:(\d+)")
-	Y := Fn_QuickRegEx(The_MemoryFile,"y:(\d+)")
+	GUI_X := Fn_QuickRegEx(The_MemoryFile,"x:(\d+)")
+	GUI_Y := Fn_QuickRegEx(The_MemoryFile,"y:(\d+)")
 	FileDelete, % RestartFile_Location
 	}
 	
@@ -726,7 +722,7 @@ SGRDatafeeds_Array := []
 	SGRDatafeeds_Array[A_Index,"Delay"] := Delay
 	}
 	
-Gui, Add, Text, x440 y3 w100 +Right, %Version_Name%
+Gui, Add, Text, x440 y3 w100 +Right, %The_VersionName%
 Gui, Add, Tab, x2 y0 h900 w550  , Main|Options
 
 ;Main Tab
@@ -767,13 +763,32 @@ Menu, MenuBar, Add, &Help, :HelpMenu
 Gui, Menu, MenuBar
 
 ;Show GUI in last location unless error is encountered. Use middle if screen if so
-	If (X = "null" || Y = "null" || X = "" || Y = ""){
-	X = 0
-	Y = 0
+	If (GUI_X = "null" || GUI_Y = "null" || GUI_X = "" || GUI_Y = ""){
+	GUI_X = 0
+	GUI_Y = 0
 	}
-Gui, Show, h820 w550 x%X% y%Y%, % The_ProjectName
-Sleep 100
-Gui, Show, x%X% y%Y%, % The_ProjectName
+	
+
+Gui, Show, h820 w550, % The_ProjectName
+	;Loop, 10 
+	;{
+	;Gui, Show, x%GUI_X% y%GUI_Y%, % The_ProjectName
+	;}
+	
+	If (InStr(The_ProjectName,"VIA")) {
+		Loop, 10 
+		{
+		Gui, Show, x1919 y-1, % The_ProjectName
+		}
+	
+	}
+	If (InStr(The_ProjectName,"NJ")) {
+		Loop, 10 
+		{
+		Gui, Show, x2610 y-1, % The_ProjectName
+		}
+	
+	}
 
 ;Start Autoupdate by default
 GoSub, AutoUpdate
@@ -854,8 +869,8 @@ Return
 Menu_File-Restart:
 Gui, Submit, NoHide
 The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
-WinGetPos, X, Y,,, %The_ProjectName%
-FileAppend, x:%X% y:%Y% SystemName:%The_SystemName%`n`r, %A_ScriptDir%\Restart.txt
+WinGetPos, GUI_X, GUI_Y,,, % The_ProjectName
+FileAppend, x:%GUI_X% y:%GUI_Y% SystemName:%The_SystemName%`n`r, %A_ScriptDir%\Restart.txt
 Sleep 300
 Reload
 
