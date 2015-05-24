@@ -10,7 +10,7 @@
 SetBatchLines -1 ;Go as fast as CPU will allow
 StartUp()
 The_ProjectName = SGR Overview
-The_VersionName = v0.3.4
+The_VersionName = v0.3.6
 
 ;Dependencies
 #Include %A_ScriptDir%\Functions
@@ -30,8 +30,6 @@ Sb_RemoteShutDown() ;Allows for remote shutdown
 StartInternalGlobals()
 RecalculateToday = 1
 
-Fn_DailyRestart("02") ;Perform daily restart of data at 02:00AM
-	
 ;~~~~~~~~~~~~~~~~~~~~~
 ;GUI
 ;~~~~~~~~~~~~~~~~~~~~~
@@ -52,6 +50,9 @@ UpdateButton:
 The_UnknownmessageCounter := 0
 ;Fn_GUI_UpdateProgress(0)
 
+
+;Start watching new date at 1:00 AM
+Sb_DailyRestart("01") 
 ;Get today's date and convert into separate vars
 	If (RecalculateToday = 1) {
 	The_Day := A_DD
@@ -67,7 +68,7 @@ The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
 	Msgbox, There was a problem reading the system name, please check SGR_Locations.txt and try again.
 	Return
 	}
-	
+
 ;Grab delay time for current selected datafeed
 Loop, % SGRDatafeeds_Array.MaxIndex()
 {
@@ -294,6 +295,7 @@ Loop, % AllTracks_Array.MaxIndex() {
 	MTP := Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})") . ":" . Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})$")
 	MTP := Fn_IsTimeClose(MTP,1,"m")
 	MTP := MTP - MTPDelay
+	AllTracks_Array[A_Index,"MTP"] := MTP
 	
 	;If (AllTracks_Array[A_Index,"ProbableType"] = "" && MTP < 30) {
 	;AllTracks_Array[A_Index,"Color"] := "Orange"
@@ -353,6 +355,23 @@ Loop, % AllTracks_Array.MaxIndex() {
 		;AllTracks_Array[A_Index,"Comment"] := "MISSING WillPay Messages"
 		;}
 	
+		;Is the track super late?
+		If (MTP < -20) {
+		;AllTracks_Array[A_Index,"Score"] += -100
+		AllTracks_Array[A_Index,"Comment"] := "late"
+		}
+		If (MTP < -30) {
+		AllTracks_Array[A_Index,"Comment"] := "LATE!"
+		}
+		If (MTP < -40) {
+		AllTracks_Array[A_Index,"Comment"] := "LATE!"
+		AllTracks_Array[A_Index,"Score"] += -100
+		}
+		If (MTP < -50) {
+		AllTracks_Array[A_Index,"Comment"] := "LATE!"
+		AllTracks_Array[A_Index,"Score"] += -1000
+		}
+		
 	
 	;TRACK COMPLETED?
 	If (AllTracks_Array[A_Index,"TotalRaces"] = AllTracks_Array[A_Index,"OfficialRace"] && AllTracks_Array[A_Index,"TotalRaces"] != "") {
@@ -422,7 +441,7 @@ Fn_Sort2DArray(AllTracks_Array, "Score")
 ; Write All Data Out to GUI
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 ;Clear out the listview for new data to appear in GUI
-;LVA_EraseAllCells("GUI_Listview")
+LVA_EraseAllCells("GUI_Listview")
 LV_Delete()
 LVA_Refresh("GUI_Listview")
 
@@ -454,24 +473,20 @@ TimeString := " sec"
 	TimeString := " min"
 		;If the track hasn't got a new message in 3 mins! LATE!!!!
 		If (TimeDifference > 3) {
-		AllTracks_Array[A_Index,"Late"] := 1
-		AllTracks_Array[A_Index,"Score"] += -100 ;This does nothing right now because sort happens earlier
 		;LVA_SetCell("GUI_Listview", A_Index, 5, "ffbe03")
 		}
 		If (TimeDifference > 5) {
-		AllTracks_Array[A_Index,"Score"] += -100
 		;LVA_SetCell("GUI_Listview", A_Index, 5, "Red")
 		}
 		If (TimeDifference >= 60) {
 		TimeDifference := Fn_IsTimeClose(AllTracks_Array[A_Index,"TimeStamp"],0,"h")
 		TimeString := " hour"
-		AllTracks_Array[A_Index,"Late"] := 2
-		AllTracks_Array[A_Index,"Score"] += -100 ;This does nothing right now because sort happens earlier
 		}
 	}
 TimeDifference := TimeDifference . TimeString
 
 
+;;Color Tracks that are missing messages
 	If (AllTracks_Array[A_Index,"Color"] = "Red") {
 	LVA_SetCell("GUI_Listview", A_Index, 0, "9551ff") ;Previously Red "Red"
 	}
@@ -491,17 +506,20 @@ TimeDifference := TimeDifference . TimeString
 	LVA_SetCell("GUI_Listview", A_Index, 0, "8e8e8e")
 	}
 	
-MTP := 
-MTP := Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})") . ":" . Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})$")
-MTP := Fn_IsTimeClose(MTP,1,"m")
-MTP := MTP - MTPDelay
-;Add MTP to Array for use anywhere else we need
-AllTracks_Array[A_Index,"MTP"] := MTP
+;;Color late tracks MTP cell
+	If (AllTracks_Array[A_Index,"Comment"] = "late") {
+	LVA_SetCell("GUI_Listview", A_Index, 3, "FFCC00") ;Yellow
+	}
+	If (AllTracks_Array[A_Index,"Comment"] = "LATE!") {
+	LVA_SetCell("GUI_Listview", A_Index, 3, "FF6600") ;Orange
+	}
+	
+MTP := AllTracks_Array[A_Index,"MTP"]
 
 	;If (AllTracks_Array[A_Index,"Completed"] = False)
 	If (1) {
 	;Note some fields have extra A_Space or "   " appended to help with LV_ModifyCol() later. modifying each column is resource intensive for overloaded wallboard monitors
-	LV_Add("",AllTracks_Array[A_Index,"TrackName"],AllTracks_Array[A_Index,"TrackCode"] . " ",MTP . " ",AllTracks_Array[A_Index,"CurrentRace"] . "/" . AllTracks_Array[A_Index,"TotalRaces"],TimeDifference . "   ",PB . "   ",WP . "   ",AllTracks_Array[A_Index,"Comment"])
+	LV_Add("",AllTracks_Array[A_Index,"TrackName"],AllTracks_Array[A_Index,"TrackCode"] . " ",AllTracks_Array[A_Index,"MTP"] . " ",AllTracks_Array[A_Index,"CurrentRace"] . "/" . AllTracks_Array[A_Index,"TotalRaces"],TimeDifference . "   ",PB . "   ",WP . "   ",AllTracks_Array[A_Index,"Comment"])
 	}
 	
 	If(TimeDifference = "") {
@@ -566,7 +584,7 @@ A_LF := "`n"
 ;Temp
 FileCreateDir, %A_ScriptDir%\Data
 FileCreateDir, %A_ScriptDir%\Data\DB
-FileCreateDir, %A_ScriptDir%\Data\Temp
+;FileCreateDir, %A_ScriptDir%\Data\Temp ;DEPRECIATED
 FileInstall, Data\SGR_Locations.txt, %A_ScriptDir%\Data\SGR_Locations.txt, 0
 }
 
@@ -624,23 +642,26 @@ l_TimeStamp2 := Fn_QuickRegEx(para_TimeStamp,":(\d{2})")
 	Return ERROR
 }
 
-Fn_DailyRestart(para_RestartTime)
+Sb_DailyRestart(para_RestartTime)
 {
 global
 
-;Check every 20 mins
-SetTimer, DailyRestartCheck, -1200000
+;Check every 20 mins - DEPRECIATED. Always check
+;SetTimer, DailyRestartCheck, 1200000
+
+The_RestartTime := para_RestartTime
 DailyRestartCheck:
-	If (para_RestartTime = A_Hour) {
+	If (The_RestartTime = A_Hour) {
 	RecalculateToday = 1
 	Debug_Msg("recalculating today")
 	}
 Return
 }
 
-;Imports Existing DB File
+
 Fn_ImportDBData(para_DB,para_DBlabel)
 {
+;Imports Existing DB File
 global
 FormatTime, A_Today, , yyyyMMdd
 ExternalDB = %A_ScriptDir%\Data\DB\%A_Today%_%The_SystemName%_%The_VersionName%_%para_DBlabel%.json
