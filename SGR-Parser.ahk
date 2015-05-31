@@ -10,7 +10,7 @@
 SetBatchLines -1 ;Go as fast as CPU will allow
 StartUp()
 The_ProjectName = SGR Overview
-The_VersionName = v0.3.6
+The_VersionName = v0.3.7
 
 ;Dependencies
 #Include %A_ScriptDir%\Functions
@@ -51,16 +51,21 @@ The_UnknownmessageCounter := 0
 ;Fn_GUI_UpdateProgress(0)
 
 
-;Start watching new date at 1:00 AM
-Sb_DailyRestart("01") 
-;Get today's date and convert into separate vars
-	If (RecalculateToday = 1) {
+;Change date if current time is 1:00 AM or if run for the first time. The_Day is blank
+	If (A_Hour = "01" || The_Day = "") {
 	The_Day := A_DD
 	The_Month := A_MM
 	The_Year := A_YYYY
-	RecalculateToday = 0
 	}
+	
+	
+;Clear both Objects and re-import any existing data for today (so we don't forget about tracks
+Txt_Array := []
 
+AllTracks_Array := []
+IgnoredTracks := []
+
+;This has to be before any importing of data because it is dependant on The_SystemName 
 ;Get user selected or default SGR location and convert into full path to file
 Gui, Submit, NoHide
 The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
@@ -77,10 +82,32 @@ Loop, % SGRDatafeeds_Array.MaxIndex()
 	}
 }
 
-;Clear both Objects and re-import any existing data for today (so we don't forget about tracks
-Txt_Array := []
+
+;Only import tracks after 5:00 AM and before 11:00PM
+If (A_Hour < 23 && A_Hour > 04) {
+The_UseDB = True
 AllTracks_Array := Fn_ImportDBData(AllTracks_Array,"MainDB")
 IgnoredTracks := Fn_ImportDBData(AllTracks_Array,"IgnoredDB")
+} Else {
+The_UseDB = False
+}
+
+
+;Get user selected or default SGR location and convert into full path to file
+Gui, Submit, NoHide
+The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
+	If (The_SystemName = "" || The_SystemName = "null") {
+	Msgbox, There was a problem reading the system name, please check SGR_Locations.txt and try again.
+	Return
+	}
+
+;Grab delay time for current selected datafeed
+Loop, % SGRDatafeeds_Array.MaxIndex()
+{
+	If (SGRDatafeeds_Array[A_Index,"SystemName"] = The_SystemName) {
+	MTPDelay := SGRDatafeeds_Array[A_Index,"Delay"]
+	}
+}
 
 ;Special variable numbers for progressbar
 ;WM_USER               := 0x00000400
@@ -106,19 +133,27 @@ SGR_Location = \\%The_SystemName%\tvg\LogFiles\%The_Month%-%The_Day%-%The_Year%\
 ;Clear temp folder and copy selected SGR datafile from production to temp location
 ;FilePath_SGRDir = %A_ScriptDir%\Data\Temp\%The_SystemName%
 
-
-;Read the last 2000 lines from the SGR file. Returns an array object with each line as an element
-Txt_Array := Fn_FileTail(SGR_Location, 2000) 
-
-	If (Txt_Array.MaxIndex() <= 100){
-	FileAppend, `n`r%A_Now% - Empty Text Array, %A_ScriptDir%\ErrorLog.txt
+	;Read the last 2000 lines from the SGR file if the file exists. Returns an array object with each line as an element
+	If (FileExist(SGR_Location)) {
+	Txt_Array := Fn_FileTail(SGR_Location, 2000) 
+	} Else {
+	FileAppend, `n`r%A_Now% - SGR File not created yet on %The_SystemName%, %A_ScriptDir%\ErrorLog.txt
+	LVA_EraseAllCells("GUI_Listview")
+	LV_Delete()
+	LVA_Refresh("GUI_Listview")
+	LV_Add("","SDL file on " . The_SystemName . " not ready")
+	LV_ModifyCol()
 	Return
 	}
-	
+
+	;If (Txt_Array.MaxIndex() <= 100){
+	;FileAppend, `n`r%A_Now% - Very Small Text Array, %A_ScriptDir%\ErrorLog.txt
+	;Return
+	;}
 	
 ;Remove special options from progressbar and go back to normal
 Fn_GUI_UpdateProgress(0)
-GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
+;GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 
 
 	;Read Each line of the new Txt_Array for relevant messages, pull trackname and trackcode out
@@ -136,7 +171,7 @@ GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 	ProbableType :=
 	TrackOfficial := 
 	TotalRaces := 
-	;Faster to read from var than object? Unlikely; what is this comment about?
+	;Faster to read from var than object? Simpler perhaps...
 	FULL_MESSAGE := Txt_Array[A_Index]
 		If (StrLen(FULL_MESSAGE) <= 3) {
 		FileAppend, `n`r%A_Now% - Very short Message: %FULL_MESSAGE%, %A_ScriptDir%\ErrorLog.txt
@@ -297,10 +332,28 @@ Loop, % AllTracks_Array.MaxIndex() {
 	MTP := MTP - MTPDelay
 	AllTracks_Array[A_Index,"MTP"] := MTP
 	
-	;If (AllTracks_Array[A_Index,"ProbableType"] = "" && MTP < 30) {
-	;AllTracks_Array[A_Index,"Color"] := "Orange"
-	;AllTracks_Array[A_Index,"Comment"] := "No Probable data for upcoming current race"
-	;}
+		;Is the track super late?
+		If (MTP < -20) {
+		;AllTracks_Array[A_Index,"Score"] += -100
+		AllTracks_Array[A_Index,"Comment"] := "late"
+		}
+		If (MTP < -30) {
+		AllTracks_Array[A_Index,"Comment"] := "LATE!"
+		}
+		If (MTP < -40) {
+		AllTracks_Array[A_Index,"Comment"] := "LATE!"
+		AllTracks_Array[A_Index,"Score"] += -100
+		}
+		If (MTP < -50) {
+		AllTracks_Array[A_Index,"Comment"] := "LATE!"
+		AllTracks_Array[A_Index,"Score"] += -1000
+		}
+		
+		
+		;If (AllTracks_Array[A_Index,"ProbableType"] = "" && MTP < 30) {
+		;AllTracks_Array[A_Index,"Color"] := "Orange"
+		;AllTracks_Array[A_Index,"Comment"] := "No Probable data for upcoming current race"
+		;}
 	
 	RI := Fn_IsTimeClose(AllTracks_Array[A_Index,"RI"])
 	PB := Fn_IsTimeClose(AllTracks_Array[A_Index,"PB"])
@@ -354,28 +407,12 @@ Loop, % AllTracks_Array.MaxIndex() {
 		;AllTracks_Array[A_Index,"Score"] := -100
 		;AllTracks_Array[A_Index,"Comment"] := "MISSING WillPay Messages"
 		;}
-	
-		;Is the track super late?
-		If (MTP < -20) {
-		;AllTracks_Array[A_Index,"Score"] += -100
-		AllTracks_Array[A_Index,"Comment"] := "late"
-		}
-		If (MTP < -30) {
-		AllTracks_Array[A_Index,"Comment"] := "LATE!"
-		}
-		If (MTP < -40) {
-		AllTracks_Array[A_Index,"Comment"] := "LATE!"
-		AllTracks_Array[A_Index,"Score"] += -100
-		}
-		If (MTP < -50) {
-		AllTracks_Array[A_Index,"Comment"] := "LATE!"
-		AllTracks_Array[A_Index,"Score"] += -1000
-		}
 		
 	
 	;TRACK COMPLETED?
 	If (AllTracks_Array[A_Index,"TotalRaces"] = AllTracks_Array[A_Index,"OfficialRace"] && AllTracks_Array[A_Index,"TotalRaces"] != "") {
 	AllTracks_Array[A_Index,"Completed"] := True
+	AllTracks_Array[A_Index,"Comment"] := ""
 	} Else {
 	AllTracks_Array[A_Index,"Completed"] := False
 	}
@@ -506,13 +543,17 @@ TimeDifference := TimeDifference . TimeString
 	LVA_SetCell("GUI_Listview", A_Index, 0, "8e8e8e")
 	}
 	
-;;Color late tracks MTP cell
-	If (AllTracks_Array[A_Index,"Comment"] = "late") {
-	LVA_SetCell("GUI_Listview", A_Index, 3, "FFCC00") ;Yellow
+
+;;Color late tracks MTP cell. But only if NOT ignored or NOT complete; Kinda pointless because comment is set to "" when complete. Impossible to detect now.
+	If !(AllTracks_Array[A_Index,"Completed"] || AllTracks_Array[A_Index,"Ignored"] ) {
+		If (AllTracks_Array[A_Index,"Comment"] = "late" && ) {
+		LVA_SetCell("GUI_Listview", A_Index, 3, "FFCC00") ;Yellow
+		}
+		If (AllTracks_Array[A_Index,"Comment"] = "LATE!") {
+		LVA_SetCell("GUI_Listview", A_Index, 3, "FF6600") ;Orange
+		}
 	}
-	If (AllTracks_Array[A_Index,"Comment"] = "LATE!") {
-	LVA_SetCell("GUI_Listview", A_Index, 3, "FF6600") ;Orange
-	}
+
 	
 MTP := AllTracks_Array[A_Index,"MTP"]
 
@@ -529,8 +570,11 @@ MTP := AllTracks_Array[A_Index,"MTP"]
 
 
 
+	;Only save to DB if current time dictates
+	If (The_UseDB) {
+	Fn_ExportArray(AllTracks_Array,"MainDB")
+	}
 ;Note some fields have extra A_Space or "   " appended to help with LV_ModifyCol() later. modifying each column is resource intensive for overloaded wallboard monitors
-Fn_ExportArray(AllTracks_Array,"MainDB")
 LV_ModifyCol()
 Sleep 100
 LV_ModifyCol(1, 160)
@@ -648,12 +692,11 @@ global
 
 ;Check every 20 mins - DEPRECIATED. Always check
 ;SetTimer, DailyRestartCheck, 1200000
-
 The_RestartTime := para_RestartTime
 DailyRestartCheck:
 	If (The_RestartTime = A_Hour) {
 	RecalculateToday = 1
-	Debug_Msg("recalculating today")
+	;Debug_Msg("recalculating today")
 	}
 Return
 }
