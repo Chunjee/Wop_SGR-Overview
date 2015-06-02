@@ -42,6 +42,7 @@ LVA_ListViewAdd("GUI_Listview")
 ;MAIN PROGRAM STARTS HERE
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 
+UpdateTimer:
 ;User pressed Update Button or automatic Timer has expired
 UpdateButton:
 ;DiableAllButtons()
@@ -143,6 +144,8 @@ SGR_Location = \\%The_SystemName%\tvg\LogFiles\%The_Month%-%The_Day%-%The_Year%\
 	LVA_Refresh("GUI_Listview")
 	LV_Add("","SDL file on " . The_SystemName . " not ready")
 	LV_ModifyCol()
+	;Try again after only 30 seconds
+	SetTimer, UpdateTimer, -30000
 	Return
 	}
 
