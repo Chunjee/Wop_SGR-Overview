@@ -64,13 +64,26 @@ Current Race     |
 | SP (WPS Probables)     |      |
 | WO (Win Odds)     |      |
 | WR (WPS Totals)     |      |
+
 | Optional Message Types | Typically empty or not sent |
 | ------------- | ----------- |
 | WP (WillPay)     | Willpays     |
+
 | Unhandled Message Types | Typically empty or not sent |
 | ------------- | ----------- |
 | BI (Race Betting Information)     | NOT DECRYPTED     |
 | CF (Cashing File)     | NOT MONITORED     |
+
+
+
+| Color | Meaning |
+| ------------- | ----------- |
+| Purple | Missing RI or Several Missing Message Types. Investigate immediately |
+| Purple | Missing one or two message types. Sometimes Tote doesn't send PB or WR for certain tracks. OR Race is 40 mins past post time |
+| Orange | Race is 30 mins past post time. Check video-stream and investigate if necessary |
+| Yellow | Race is 20 mins past post time. Check video-stream |
+| Dark Gray | Track has been set to ignore. Double-click to remove from ignore list |
+| Gray | Track has completed last race on card |
 
 
 ### Technical Details
