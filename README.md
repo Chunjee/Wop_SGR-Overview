@@ -51,12 +51,9 @@ The sorted tracks are saved to a .json file to be re-loaded on the next update. 
 
 | Required Message Types | Used For |
 | ------------- | ----------- |
-| ALL      | Track Code
-Track Name|
-| RI (Race Information)     | Current Race
-Next Post Time     |
-| PB (Feature Probables)     | Probable Type
-Current Race     |
+| ALL      | Track Code / Track Name|
+| RI (Race Information)     | Current Race / Next Post Time     |
+| PB (Feature Probables)     | Probable Type / Current Race     |
 | RN (Scratched Runners)     | Total Races     |
 | PS (Scratched Pools)     |      |
 | RN (Scratched Runners)     |      |
@@ -64,13 +61,9 @@ Current Race     |
 | SP (WPS Probables)     |      |
 | WO (Win Odds)     |      |
 | WR (WPS Totals)     |      |
-
-| Optional Message Types | Typically empty or not sent |
-| ------------- | ----------- |
+| **Optional Message Types** | **Typically empty or not sent** |
 | WP (WillPay)     | Willpays     |
-
-| Unhandled Message Types | Typically empty or not sent |
-| ------------- | ----------- |
+| **Unhandled Message Types** | **Typically empty or not sent** |
 | BI (Race Betting Information)     | NOT DECRYPTED     |
 | CF (Cashing File)     | NOT MONITORED     |
 
