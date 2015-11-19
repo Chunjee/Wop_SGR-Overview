@@ -10,13 +10,18 @@
 SetBatchLines -1 ;Go as fast as CPU will allow
 StartUp()
 The_ProjectName = SGR Overview
-The_VersionName = v0.3.7
+The_VersionName = v0.4
 
 ;Dependencies
 #Include %A_ScriptDir%\Functions
 #Include sort_arrays
 #Include json_obj
 ;#Include LVA (Listed under Functions)
+
+;Classes
+#Include class_ControlConsole.ahk
+#Include class_Track.ahk
+#Include class_XML.ahk
 
 ;For Debug Only
 #Include util_arrays
@@ -36,15 +41,54 @@ RecalculateToday = 1
 BuildGUI()
 LVA_ListViewAdd("GUI_Listview")
 ;Return
-
+#Include xml_parser.ahk
 
 ;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
 ;MAIN PROGRAM STARTS HERE
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 
+;Start new Control Object; holds all tracks and other info; see class_ControlConsole
+ControlConsoleObj := New ControlConsole_Class(UserDefined_SystemType)
+
 UpdateTimer:
 ;User pressed Update Button or automatic Timer has expired
 UpdateButton:
+
+;This has to be before any importing of data because it is dependant on The_SystemName 
+;Get user selected or default SGR location and convert into full path to file
+Gui, Submit, NoHide
+The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
+	If (The_SystemName = "" || The_SystemName = "null") {
+	Msgbox, There was a problem reading the system name, please check SGR_Locations.txt and try again.
+	Return
+	}
+
+;Change date if current time is 1:00 AM or if run for the first time (The_Day is blank)
+	If (A_Hour = "01" || The_Day = "") {
+	The_Day := A_DD
+	The_Month := A_MM
+	The_Year := A_YYYY
+	}
+
+SGR_Location = \\%The_SystemName%\tvg\LogFiles\%The_Month%-%The_Day%-%The_Year%\SGRData%The_Month%-%The_Day%-%The_Year%.txt
+;BACKUP IDEA - DO NOT USE - SLOWER
+;RAWmessages_Array := ControlConsoleObj.ImportLatestMessages(SGR_Location, "2000")
+;ControlConsoleObj.IndexMessages()
+;Array_GUI(RAWmessages_Array)
+
+;Grab Raw XML from file and sort it into our own array of ids and messages
+ControlConsoleObj.ImportLatestMessages(SGR_Location,2000)
+ControlConsoleObj.ParseMessages()
+
+
+
+
+
+
+msgbox, alf
+Array_GUI(ControlConsoleObj.ReturnTopObject())
+Return
+OldButton:
 ;DiableAllButtons()
 
 ;clear some vars
@@ -135,9 +179,9 @@ SGR_Location = \\%The_SystemName%\tvg\LogFiles\%The_Month%-%The_Day%-%The_Year%\
 ;FilePath_SGRDir = %A_ScriptDir%\Data\Temp\%The_SystemName%
 
 	;Read the last 2000 lines from the SGR file if the file exists. Returns an array object with each line as an element
-	If (FileExist(SGR_Location)) {
+	if (FileExist(SGR_Location)) {
 	Txt_Array := Fn_FileTail(SGR_Location, 2000) 
-	} Else {
+	} else {
 	FileAppend, `n`r%A_Now% - SGR File not created yet on %The_SystemName%, %A_ScriptDir%\ErrorLog.txt
 	LVA_EraseAllCells("GUI_Listview")
 	LV_Delete()
@@ -146,7 +190,7 @@ SGR_Location = \\%The_SystemName%\tvg\LogFiles\%The_Month%-%The_Day%-%The_Year%\
 	LV_ModifyCol()
 	;Try again after only 30 seconds
 	SetTimer, UpdateTimer, -30000
-	Return
+	return
 	}
 
 	;If (Txt_Array.MaxIndex() <= 100){
@@ -176,14 +220,14 @@ Fn_GUI_UpdateProgress(0)
 	TotalRaces := 
 	;Faster to read from var than object? Simpler perhaps...
 	FULL_MESSAGE := Txt_Array[A_Index]
-		If (StrLen(FULL_MESSAGE) <= 3) {
+		if (StrLen(FULL_MESSAGE) <= 3) {
 		FileAppend, `n`r%A_Now% - Very short Message: %FULL_MESSAGE%, %A_ScriptDir%\ErrorLog.txt
 		}
 		
 	
 	;Legacy RegEx: "message=...........[A-Z]{2}([a-zA-Z 0-7_]+[a-zA-Z_]([0-9]|\W[0-9]|\W))\W+00\d+([A-Z]|[A-Z0-9]){3}"
 	TrackCode := Fn_QuickRegEx(FULL_MESSAGE,"\W{2}00...(\w{3})")
-		If (TrackCode != "") {
+		if (TrackCode != "") {
 		REG := "[A-Z]{2}\d+[A-Z]{2}(.*\b)\W+\d+" . TrackCode
 		TrackName := Fn_QuickRegEx(FULL_MESSAGE,REG)
 		TimeStamp := Fn_QuickRegEx(FULL_MESSAGE,"timestamp=.\d{2}\/\d{2}\/\d{4}\W(\d{2}:\d{2})")
@@ -528,7 +572,7 @@ TimeDifference := TimeDifference . TimeString
 
 ;;Color Tracks that are missing messages
 	If (AllTracks_Array[A_Index,"Color"] = "Red") {
-	LVA_SetCell("GUI_Listview", A_Index, 0, "9551ff") ;Previously Red "Red"
+	LVA_SetCell("GUI_Listview", A_Index, 0, "9933ff") ;Previously Red "Red"; also purple: 9551ff
 	}
 	If (AllTracks_Array[A_Index,"Color"] = "Orange") {
 	LVA_SetCell("GUI_Listview", A_Index, 0, "5153ff") ;Previously Orange "FF6600"
@@ -665,6 +709,36 @@ File.Close()
 Return (Content <> "" ? StrSplit(Content, NewLine) : Content)
 }
 
+
+Fn_FileTailRAW(FileName, Lines := 100, NewLine := "`r`n")
+{
+Static MaxLineLength := 256 ; seems to be a reasonable value to start with
+	If !IsObject(File := FileOpen(FileName, "r")){
+	Return ""
+	
+	}
+Content := ""
+LinesLength := MaxLineLength * Lines * (InStr(File.Encoding, "UTF-8") ? 2 : 1)
+FileLength := File.Length
+BytesToRead := 0
+FoundLines := 0
+	While (BytesToRead < FileLength) && !(FoundLines) {
+	BytesToRead += LinesLength
+		If (BytesToRead < FileLength) {
+		File.Pos := FileLength - BytesToRead
+		} Else {
+		File.Pos := 0
+		}
+	Content := RTrim(File.Read(), NewLine)
+		If (FoundLines := InStr(Content, NewLine, 0, 0, Lines)) {
+		Content := SubStr(Content, FoundLines + StrLen(NewLine))
+		}
+	}
+File.Close()
+Return, % Content
+}
+
+
 Fn_IsTimeClose(para_TimeStamp,para_Reverse := 0,para_ReturnType := "s")
 {
 ;Checks if two timestamps are close to each other; returns difference in seconds by default. para_reverse = 1 subtracks 
@@ -686,7 +760,7 @@ l_TimeStamp2 := Fn_QuickRegEx(para_TimeStamp,":(\d{2})")
 	Return %Difference%
 	Msgbox, %l_TimeStampConverted% - %A_Now%  = %Difference%    # (%l_TimeStamp1%%l_TimeStamp2%)
 	}
-	Return ERROR
+	Return "ERROR"
 }
 
 Sb_DailyRestart(para_RestartTime)
@@ -790,7 +864,7 @@ SGRDatafeeds_Array := []
 	}
 	
 Gui, Add, Text, x440 y3 w100 +Right, %The_VersionName%
-Gui, Add, Tab, x2 y0 h900 w550  , Main|Options
+Gui, Add, Tab, x2 y0 h1050 w550  , Main|Options
 
 ;Main Tab
 Gui, Add, Button, x2 y30 w100 h30 gUpdateButton, Update
@@ -804,8 +878,8 @@ Gui, Font, ;Reset Font to normal
 
 
 ;Main View
-Gui, Font, s12 w10, Arial ;Needed so visible from far away
-Gui, Add, ListView, x2 y70 w546 h750 Grid +ReDraw gDoubleClick vGUI_Listview, Track|Code|MTP|Race|Last|Odds|WP|Comment
+Gui, Font, s14 w10, Arial ;Needed so visible from far away
+Gui, Add, ListView, x2 y70 w546 h970 Grid +ReDraw gDoubleClick vGUI_Listview, Track|Code|MTP|Race|Last|Odds|WP|Comment
 
 
 
@@ -834,27 +908,24 @@ Gui, Menu, MenuBar
 	GUI_X = 0
 	GUI_Y = 0
 	}
-	
 
-Gui, Show, h820 w550, % The_ProjectName
+Gui, Show, h1040 w550, % The_ProjectName
 	;Loop, 10 
 	;{
 	;Gui, Show, x%GUI_X% y%GUI_Y%, % The_ProjectName
 	;}
 	
 	If (InStr(The_ProjectName,"VIA")) {
-		Loop, 10 
+		Loop, 10
 		{
-		Gui, Show, x1919 y-1, % The_ProjectName
+		Gui, Show, x1920 y-1, % The_ProjectName
 		}
-	
 	}
 	If (InStr(The_ProjectName,"NJ")) {
-		Loop, 10 
+		Loop, 10
 		{
-		Gui, Show, x2610 y-1, % The_ProjectName
+		Gui, Show, x2480 y-1, % The_ProjectName
 		}
-	
 	}
 
 ;Start Autoupdate by default
