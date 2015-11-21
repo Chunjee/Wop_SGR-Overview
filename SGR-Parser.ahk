@@ -76,17 +76,21 @@ SGR_Location = \\%The_SystemName%\tvg\LogFiles\%The_Month%-%The_Day%-%The_Year%\
 ;ControlConsoleObj.IndexMessages()
 ;Array_GUI(RAWmessages_Array)
 
+Fn_GUI_UpdateProgress(1)
 ;Grab Raw XML from file and sort it into our own array of ids and messages
-ControlConsoleObj.ImportLatestMessages(SGR_Location,2000)
+ControlConsoleObj.ImportLatestMessages(SGR_Location,3000)
+
+;Try to understand each message
 ControlConsoleObj.ParseMessages()
+;Update some of the GUI information off the latest message for each track
+ControlConsoleObj.UpdateOffLatestMessages()
+;Export to the GUI
+ControlConsoleObj.ExportListview()
 
 
 
-
-
-
-msgbox, alf
-Array_GUI(ControlConsoleObj.ReturnTopObject())
+;Fn_GUI_UpdateProgress(100)
+;Array_GUI(ControlConsoleObj.ReturnTopObject())
 Return
 OldButton:
 ;DiableAllButtons()

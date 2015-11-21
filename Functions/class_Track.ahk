@@ -8,16 +8,57 @@ Class Track_Class {
 	}
 
 
-	InsertMessage(para_Message) {
-		
+	ExtractTrackCode(para_message) {
+		TrackCode := Fn_QuickRegEx(para_message," \d{5}(\w{3})\d{4}\w{3} ")
+		If (TrackCode != "null") {
+			Return % TrackCode
+		} else {
+			Return null
+		}
+	}
 
+
+	ExtractTrackName(para_message) {
+		
+		;Need the Track Code to help isolate the track name (see next comment for possible improvement)
+			;possible improvement for no track code required: "[A-Z]{2}\d{4}[A-Z]{2}(.*\b)  "
+		TrackCode := this.ExtractTrackCode(para_message)
+
+		;Construct new RegEx with found TrackCode
+		REG := "[A-Z]{2}\d{4}[A-Z]{2}(.*\b)\W+\d+" . TrackCode
+
+		;Grab TrackName
+		TrackName := Fn_QuickRegEx(para_Message,REG)
+		Return % TrackName
+	}
+
+
+	ExtractNextPost(para_message) {
+
+	}
+
+
+	ExtractTotalRaces(para_message) {
+		TotalRaces := Fn_QuickRegEx(para_message,"[\w\d]{3}\W\d{4}(\d{2})")
+		if (para_message != "") {
+			clipboard := para_message
+		}
+		Return % TotalRaces
+	}
+
+
+	ExtractCurrentRace(para_message) {
+		CurrentRace := Fn_QuickRegEx(para_message,"\d{4}[\w\D]{3}\W+(\d{2})")
+		Return % CurrentRace
+	}
+
+	
+
+
+	InsertMessage(para_Message) {
 		;Figure out what type of message it is
 		MessageType := Fn_QuickRegEx(para_Message,"0OD\d{4}([A-Z]{2})")
-		;msgbox, accepted new message for existing track %MessageType%  
-
-		If (this.Label = "FIM") {
-			;msgbox, accepted new message for existing track %MessageType%  
-		}
+		;msgbox, accepted new message for existing track %MessageType%
 
 		If (MessageType = "RN") {
 			this.MostRecentMessageTypeArray["RN"] := para_Message
@@ -49,10 +90,8 @@ Class Track_Class {
 
 			REG := this.Label . "\d+(\s+|\w+)\s\d+(\w+)"
 			ProbableType := Fn_QuickRegEx(para_Message,REG,2)
-			;msgbox, % ProbableType
 			REG := this.Label . "\d+\w+\s\d+\w+\s(\d{2})"
 			ProbableRace := Fn_QuickRegEx(para_Message,REG)
-			Clipboard := para_Message
 			this.SetNumberRaces(ProbableRace)
 			Return
 		}
@@ -84,7 +123,6 @@ Class Track_Class {
 			this.MostRecentMessageTypeArray["FN"] := para_Message
 			Return
 		}
-		Clipboard := para_Message
 		msgbox, didn't understand %MessageType% - %para_Message%
 	}
 
