@@ -47,9 +47,6 @@ LVA_ListViewAdd("GUI_Listview")
 ;MAIN PROGRAM STARTS HERE
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 
-;Start new Control Object; holds all tracks and other info; see class_ControlConsole
-ControlConsoleObj := New ControlConsole_Class(UserDefined_SystemType)
-
 UpdateTimer:
 ;User pressed Update Button or automatic Timer has expired
 UpdateButton:
@@ -77,8 +74,16 @@ SGR_Location = \\%The_SystemName%\tvg\LogFiles\%The_Month%-%The_Day%-%The_Year%\
 ;Array_GUI(RAWmessages_Array)
 
 Fn_GUI_UpdateProgress(1)
+
+
+;Start new Control Object; holds all tracks and other info; see class_ControlConsole
+	;also imports existing data if it exists
+ControlConsoleObj := New ControlConsole_Class(The_SystemName)
+
+ControlConsoleObj.ImportFiletoDB()
+
 ;Grab Raw XML from file and sort it into our own array of ids and messages
-ControlConsoleObj.ImportLatestMessages(SGR_Location,3000)
+ControlConsoleObj.ImportLatestMessages(SGR_Location,2000)
 
 ;Try to understand each message
 ControlConsoleObj.ParseMessages()
@@ -87,10 +92,12 @@ ControlConsoleObj.UpdateOffLatestMessages()
 ;Export to the GUI
 ControlConsoleObj.ExportListview()
 
-
+;Save to file for new Round
+ControlConsoleObj.SaveDBtoFile()
 
 ;Fn_GUI_UpdateProgress(100)
-;Array_GUI(ControlConsoleObj.ReturnTopObject())
+Array_GUI(ControlConsoleObj.ReturnTopObject())
+
 Return
 OldButton:
 ;DiableAllButtons()

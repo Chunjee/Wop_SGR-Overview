@@ -4,7 +4,7 @@ Class Track_Class {
 		this.Info_Array := []
 		this.MostRecentMessageTypeArray := []
 		this.Label := para_Name
-		;msgbox, new track added with %para_Name%
+		msgbox, new track added with %para_Name%
 	}
 
 
@@ -13,7 +13,7 @@ Class Track_Class {
 		If (TrackCode != "null") {
 			Return % TrackCode
 		} else {
-			Return null
+			Return "null"
 		}
 	}
 
@@ -40,9 +40,6 @@ Class Track_Class {
 
 	ExtractTotalRaces(para_message) {
 		TotalRaces := Fn_QuickRegEx(para_message,"[\w\d]{3}\W\d{4}(\d{2})")
-		if (para_message != "") {
-			clipboard := para_message
-		}
 		Return % TotalRaces
 	}
 
@@ -62,7 +59,13 @@ Class Track_Class {
 
 		If (MessageType = "RN") {
 			this.MostRecentMessageTypeArray["RN"] := para_Message
-			TotalRaces := Fn_QuickRegEx(para_Message,"(([A-Z]|[A-Z0-9]){3})\w+\W+\d{6}(\d{2})",3)
+
+			;Remember this message for total races if more than once race is defined
+			TotalRaces_SmokeCheck := Fn_QuickRegEx(para_Message,"\d{4}[\d\w]{3}\W+.+L.\d+(L)")
+			If (TotalRaces_SmokeCheck = "L") {
+				this.MostRecentMessageTypeArray["RN_AllRaces"] := para_Message
+				msgbox, % para_Message
+			}
 			Return
 		}
 		If (MessageType = "RI") {
@@ -128,7 +131,7 @@ Class Track_Class {
 
 	SetNumberRaces(para_TotalRaces) {
 		;msgbox, !!!!!!!trying with %para_TotalRaces%
-		this.Info_Arra.Races := []
+		this.Info_Array.Races := []
 		Loop, % para_TotalRaces {
 			this.Info_Array.Races := []
 			Loop, % para_TotalRaces {

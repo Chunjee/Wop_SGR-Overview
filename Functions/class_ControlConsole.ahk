@@ -1,15 +1,25 @@
 ﻿Class ControlConsole_Class {
 	
-	__New() {
-		;Maybe check for existing JSON file first
-		this.Track_Array := []
-		;this.Track_Array["1","TrackCode"] := "Blank"
+	__New(para_SystemName) {
+		;check for existing JSON file first
+		;this.Track_Array := Fn_ImportDBData(para_DB,"test")
+			if (this.Track_Array.MaxIndex() = "") {
+				;for clarity only, create empty array if no file was loaded. (first run of today)
+				this.Track_Array := []
+				msgbox, made new
+			}
 
 		this.Messages_Array := []
 
 		this.AnonamousRace := new Track_Class("XXX") ;Just used if we want to access some methods
 	}
 
+	ImportFiletoDB() {
+		this.Track_Array := Fn_ImportDBData(para_DB,"test")
+	}
+	SaveDBtoFile() {
+		Fn_ExportArray(this.Track_Array,"test")
+	}
 
 	ImportLatestMessages(para_SGRdirlocation, para_LinesToImport) {
 		;;Read the last 2000 lines from the SGR file if the file exists. Returns an array object with each line as an element
@@ -18,7 +28,13 @@
 			RawXML := Fn_FileTailRAW(para_SGRdirlocation, para_LinesToImport)
 			RawXML := StrReplace(RawXML, "", "")
 			RawXML := StrReplace(RawXML, "", "")
-			RawXML = <?xml version="1.0" encoding="utf-8" ?>`r`n<Messages>`r`n%RawXML%`r`n</Messages>
+				;Append stuff to make it closer to a complete xml file
+				If (!InStr(RawXML,"xml version=")) {
+					RawXML = <?xml version="1.0" encoding="utf-8" ?>`r`n<Messages>`r`n%RawXML%`r`n</Messages>
+				} else {
+					;don't append head if grabbed
+					RawXML = %RawXML%`r`n</Messages>
+				}
 
 			XML_Obj := new xml(RawXML)
 			;XML_Obj.viewXML()
@@ -58,12 +74,9 @@
 			;TrackCode := Fn_QuickRegEx(this.ITSP_Array[A_Index,"message"]," \d{5}(\w{3})\d{4}\w{3} ")
 			TrackCode := this.AnonamousRace.ExtractTrackCode(this.ITSP_Array[A_Index,"message"])
 			X := A_Index
-			If (TrackCode = "null") {
-				message := this.ITSP_Array[A_Index,"message"]
-				FileAppend, `n`r%A_Now% - could not find track code in: %message%, %A_ScriptDir%\ErrorLog.txt
-			}
-
 			;Look for an existing match to the track
+			msgbox, % this.TrackArray.MaxIndex() "alllllllllllf"
+			;Array_GUI(this.Track_Array)
 			Loop, % this.TrackArray.MaxIndex() {
 				If (this.TrackArray[A_Index,"TrackCode"] = TrackCode) {
 					this.TrackArray[A_Index,"Object"].InsertMessage(this.ITSP_Array[X,"message"])
@@ -71,6 +84,13 @@
 					Continue 2
 				}
 			}
+
+
+			If (TrackCode = "null") {
+				message := this.ITSP_Array[A_Index,"message"]
+				FileAppend, `n`r%A_Now% - could not find track code in: %message%, %A_ScriptDir%\ErrorLog.txt
+			}
+
 
 			Y := this.TrackArray.MaxIndex()
 			Y++
@@ -81,7 +101,6 @@
 			;lets remember some stuff about this track while we are here
 			this.TrackArray[Y,"TrackCode"] := TrackCode
 			this.TrackArray[Y,"TrackName"] := this.AnonamousRace.ExtractTrackName(this.ITSP_Array[X,"message"])
-			
 			Continue
 		}
 	}
@@ -90,19 +109,22 @@
 	UpdateOffLatestMessages() {
 	;Grab most recent information for GUI display
 		Loop, % this.TrackArray.MaxIndex() {
-		
-		;Use [RI] for Next Post Time
-		this.TrackArray[A_Index,"NextPost"] := this.AnonamousRace.ExtractNextPost(this.TrackArray[A_Index,"Object"].MostRecentMessageTypeArray.RI)
-		;and how many MTP is that?
-		this.TrackArray[A_Index,"MTP"] := ""
+			;Use [RI] for Next Post Time
+			this.TrackArray[A_Index,"NextPost"] := this.AnonamousRace.ExtractNextPost(this.TrackArray[A_Index,"Object"].MostRecentMessageTypeArray.RI)
+			;and how many MTP is that?
+			this.TrackArray[A_Index,"MTP"] := ""
 
-		;Use [RI] for Total Races
-		this.TrackArray[A_Index,"TotalRaces"] := this.AnonamousRace.ExtractTotalRaces(this.TrackArray[A_Index,"Object"].MostRecentMessageTypeArray.RI)
+			;Use [RN_AllRaces] for Total Races
+			this.TrackArray[A_Index,"TotalRaces"] := this.AnonamousRace.ExtractTotalRaces(this.TrackArray[A_Index,"Object"].MostRecentMessageTypeArray.RN_AllRaces)
 
-		;Use [RI] for Current Race
-		this.TrackArray[A_Index,"CurrentRaces"] := this.AnonamousRace.ExtractCurrentRace(this.TrackArray[A_Index,"Object"].MostRecentMessageTypeArray.RI)
+			;Use [RI] for Current Race
+			this.TrackArray[A_Index,"CurrentRace"] := this.AnonamousRace.ExtractCurrentRace(this.TrackArray[A_Index,"Object"].MostRecentMessageTypeArray.RI)
 
-		this.TrackArray[A_Index,"Race"] := this.TrackArray[A_Index,"CurrentRaces"] ; "/" this.TrackArray[A_Index,"TotalRaces"]
+			If (this.TrackArray[A_Index,"TotalRaces"] = "" || this.TrackArray[A_Index,"TotalRaces"] = "null") {
+				this.TrackArray[A_Index,"GUI_Race"] := this.TrackArray[A_Index,"CurrentRace"] "/??" 
+			} else {
+				this.TrackArray[A_Index,"GUI_Race"] := this.TrackArray[A_Index,"CurrentRace"] "/" this.TrackArray[A_Index,"TotalRaces"]
+			}
 		}
 	}
 
@@ -110,7 +132,7 @@
 	ExportListview() {
 		Fn_Sort2DArray(this.TrackArray, "MTP")
 		Loop, % this.TrackArray.MaxIndex() {
-			LV_Add("",this.TrackArray[A_Index,"TrackName"],this.TrackArray[A_Index,"TrackCode"],this.TrackArray[A_Index,"MTP"],this.TrackArray[A_Index,"Race"],"",this.TrackArray[A_Index,"Odds"],this.TrackArray[A_Index,"WillPay"],this.TrackArray[A_Index,"Comment"])
+			LV_Add("",this.TrackArray[A_Index,"TrackName"],this.TrackArray[A_Index,"TrackCode"],this.TrackArray[A_Index,"MTP"],this.TrackArray[A_Index,"GUI_Race"],"",this.TrackArray[A_Index,"Odds"],this.TrackArray[A_Index,"WillPay"],this.TrackArray[A_Index,"Comment"])
 			
 		}
 
