@@ -1,6 +1,6 @@
-AMTOTE1#0#\\tvgvprTGP01\tvg\LogFiles
-AMTOTE2#0#\\tvgvprTGP02\tvg\LogFiles
-TVG-01#0#\\tvgopstgp01\tvg\LogFiles
-TVG-04#0#\\tvgopstgp04\tvg\LogFiles
-NJ-01#180#\\njaopstgp01\tvg\LogFiles
-NJ-02#180#\\njaopstgp02\tvg\LogFiles
+Name:'AMTOTE1'	Delay:'0	FilePath:'\\tvgvprTGP01\tvg\LogFiles'
+Name:'AMTOTE2'	Delay:'0'	FilePath:'\\tvgvprTGP02\tvg\LogFiles'
+Name:'TVG-01'	Delay:'0'	FilePath:'\\tvgopstgp01\tvg\LogFiles'
+Name:'TVG-04'	Delay:'0'	FilePath:'\\tvgopstgp04\tvg\LogFiles'
+Name:'NJ-01'	Delay:'180'	FilePath:'\\njaopstgp01\tvg\LogFiles'
+Name:'NJ-02'	Delay:'180'	FilePath:'\\njaopstgp02\tvg\LogFiles'

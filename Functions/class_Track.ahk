@@ -1,10 +1,9 @@
 Class Track_Class {
 	
 	__New(para_Name) {
-		this.Info_Array := []
-		this.MostRecentMessageTypeArray := []
-		this.Label := para_Name
-		msgbox, new track added with %para_Name%
+		;this.Info_Array := []
+		;this.MostRecentMessageTypeArray := []
+		;msgbox, new track added with %para_Name%
 	}
 
 
@@ -38,8 +37,55 @@ Class Track_Class {
 	}
 
 
+	ExtractMTP(para_message,para_delay) {
+		PostTime := Fn_QuickRegEx(para_message,"[\w\d]{3}\W\d{20}(\d{4})")
+		l_TimeStamp1 := Fn_QuickRegEx(PostTime,"(\d{2})\d{2}")
+		l_TimeStamp2 := Fn_QuickRegEx(PostTime,"\d{2}(\d{2})")
+		MTP := Fn_TimeDifference(l_TimeStamp1 . ":" . l_TimeStamp2,1,"m")
+		;Msgbox, % l_TimeStamp1 . ":" . l_TimeStamp2
+		Return % MTP
+	}
+
+	;not working
+	ExtractMTP2(para_message,para_delay) {
+		PostTime := Fn_QuickRegEx(para_message,"\W\d{20}(\d{4})")
+		l_TimeStamp1 := Fn_QuickRegEx(PostTime,"(\d{2})\d{2}")
+		l_TimeStamp2 := Fn_QuickRegEx(PostTime,"\d{2}(\d{2})")
+		msgbox, % l_TimeStamp1 l_TimeStamp2
+		If (l_TimeStamp2 <= 25) {
+			Currentday_PRE := "20010102"
+		} else {
+			Currentday_PRE := "20010101"
+		}
+		l_TimeStampConverted := Currentday_PRE . l_TimeStamp1 . l_TimeStamp2 . "00"
+
+		l_Now := "20010101" . Fn_QuickRegEx(A_Now,"\d{8}(\d{4})\d{2}") . "00"
+		;msgbox, % l_Now "`r-`r" l_TimeStampConverted
+		l_Now -= l_TimeStampConverted, m
+
+		MTP := l_Now
+		MTP += %para_delay%
+		/*
+				;do for normal or reserve
+				If (para_reverse = 0) {
+				l_Now := A_Now
+				l_Now -= l_TimeStampConverted, %para_ReturnType%
+				Difference := l_Now
+				} Else {
+				l_TimeStampConverted -= A_Now, %para_ReturnType%
+				Difference := l_TimeStampConverted
+				;Difference := l_TimeStampConverted - A_Now
+				}
+			Return %Difference%
+			Msgbox, %l_TimeStampConverted% - %A_Now%  = %Difference%    # (%l_TimeStamp1%%l_TimeStamp2%)
+			}
+	*/
+		Return % MTP
+	}
+
+
 	ExtractTotalRaces(para_message) {
-		TotalRaces := Fn_QuickRegEx(para_message,"[\w\d]{3}\W\d{4}(\d{2})")
+		TotalRaces := Fn_QuickRegEx(para_message,"[\w\d]{3}\W\d{6}(\d{2})")
 		Return % TotalRaces
 	}
 
@@ -50,9 +96,28 @@ Class Track_Class {
 	}
 
 	
+	ExtractMessageType(para_message) {
+		MessageType := Fn_QuickRegEx(para_Message,"0OD\d{4}([A-Z]{2})")
+		Return % MessageType
+	}
 
 
+	ExtractOfficialRace(para_message) {
+		if(InStr(para_message,"TRACK      OFFICIAL")) {
+			OfficialRace := Fn_QuickRegEx(para_message,"\d{4}[\w\D]{3}\W+(\d{2})")
+			if(OfficialRace != "null") {
+				Return OfficialRace
+			}
+		} else {
+			Return False
+		}
+	}
+
+
+	;DEPRECIATED
+	/*
 	InsertMessage(para_Message) {
+		msgbox, working with %para_Message%
 		;Figure out what type of message it is
 		MessageType := Fn_QuickRegEx(para_Message,"0OD\d{4}([A-Z]{2})")
 		;msgbox, accepted new message for existing track %MessageType%
@@ -128,6 +193,7 @@ Class Track_Class {
 		}
 		msgbox, didn't understand %MessageType% - %para_Message%
 	}
+	*/
 
 	SetNumberRaces(para_TotalRaces) {
 		;msgbox, !!!!!!!trying with %para_TotalRaces%

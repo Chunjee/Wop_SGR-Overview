@@ -57,7 +57,6 @@ Gui, Submit, NoHide
 The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
 	If (The_SystemName = "" || The_SystemName = "null") {
 	Msgbox, There was a problem reading the system name, please check SGR_Locations.txt and try again.
-	Return
 	}
 
 ;Change date if current time is 1:00 AM or if run for the first time (The_Day is blank)
@@ -67,7 +66,17 @@ The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
 	The_Year := A_YYYY
 	}
 
-SGR_Location = \\%The_SystemName%\tvg\LogFiles\%The_Month%-%The_Day%-%The_Year%\SGRData%The_Month%-%The_Day%-%The_Year%.txt
+;Find the filepath
+Loop, % SGRDatafeeds_Array.MaxIndex() {
+	if (The_SystemName = SGRDatafeeds_Array[A_Index,"SystemName"]) {
+		SGR_Location := SGRDatafeeds_Array[A_Index,"FilePath"] "\" The_Month "-" The_Day "-" The_Year "\SGRData" The_Month "-" The_Day "-" The_Year ".txt"
+	}
+}
+if (SGR_Location = "") {
+	Msgbox, "filepath of SDL could not be determined. Check ..\Data\SGR_Locations.txt"
+}
+
+
 ;BACKUP IDEA - DO NOT USE - SLOWER
 ;RAWmessages_Array := ControlConsoleObj.ImportLatestMessages(SGR_Location, "2000")
 ;ControlConsoleObj.IndexMessages()
@@ -75,15 +84,16 @@ SGR_Location = \\%The_SystemName%\tvg\LogFiles\%The_Month%-%The_Day%-%The_Year%\
 
 Fn_GUI_UpdateProgress(1)
 
-
 ;Start new Control Object; holds all tracks and other info; see class_ControlConsole
 	;also imports existing data if it exists
 ControlConsoleObj := New ControlConsole_Class(The_SystemName)
 
 ControlConsoleObj.ImportFiletoDB()
+ControlConsoleObj.ConsiderEarlyMessages(SGR_Location,2000)
+ControlConsoleObj.ParseMessages()
 
 ;Grab Raw XML from file and sort it into our own array of ids and messages
-ControlConsoleObj.ImportLatestMessages(SGR_Location,2000)
+ControlConsoleObj.ImportLatestMessages(SGR_Location,3000)
 
 ;Try to understand each message
 ControlConsoleObj.ParseMessages()
@@ -95,8 +105,7 @@ ControlConsoleObj.ExportListview()
 ;Save to file for new Round
 ControlConsoleObj.SaveDBtoFile()
 
-;Fn_GUI_UpdateProgress(100)
-Array_GUI(ControlConsoleObj.ReturnTopObject())
+;Array_GUI(ControlConsoleObj.ReturnTopObject())
 
 Return
 OldButton:
@@ -774,6 +783,30 @@ l_TimeStamp2 := Fn_QuickRegEx(para_TimeStamp,":(\d{2})")
 	Return "ERROR"
 }
 
+Fn_TimeDifference(para_TimeStamp,para_Reverse := 0,para_ReturnType := "s")
+{
+;Checks if two timestamps are close to each other; returns difference in seconds by default. para_reverse = 1 subtracks 
+l_TimeStamp1 := Fn_QuickRegEx(para_TimeStamp,"(\d{2}):")
+l_TimeStamp2 := Fn_QuickRegEx(para_TimeStamp,":(\d{2})")
+	If (l_TimeStamp1 != "null" && l_TimeStamp2 != "null") {
+	FormatTime, Currentday_PRE,, yyyyMMdd
+	l_TimeStampConverted := Currentday_PRE . l_TimeStamp1 . l_TimeStamp2 . 00
+		;do for normal or reserve
+		If (para_reverse = 0) {
+		l_Now := A_Now
+		l_Now -= l_TimeStampConverted, %para_ReturnType%
+		Difference := l_Now
+		} Else {
+		l_TimeStampConverted -= A_Now, %para_ReturnType%
+		Difference := l_TimeStampConverted
+		;Difference := l_TimeStampConverted - A_Now
+		}
+	Return %Difference%
+	Msgbox, %l_TimeStampConverted% - %A_Now%  = %Difference%    # (%l_TimeStamp1%%l_TimeStamp2%)
+	}
+	Return "ERROR"
+}
+
 Sb_DailyRestart(para_RestartTime)
 {
 global
@@ -812,8 +845,10 @@ Fn_ExportArray(para_DB,para_DBlabel)
 global
 FormatTime, A_Today, , yyyyMMdd
 ExternalDB = %A_ScriptDir%\Data\DB\%A_Today%_%The_SystemName%_%The_VersionName%_%para_DBlabel%.json
+;msgbox, % ExternalDB
 	If(FileExist(ExternalDB)) {
 	FileDelete, %ExternalDB%
+	;msgbox, delete!!!
 	}
 MemoryFile := Fn_JSONfromOBJ(para_DB)
 FileAppend, %MemoryFile%, %ExternalDB%
@@ -830,6 +865,14 @@ MemoryFile := []
 BuildGUI()
 {
 Global
+
+if (A_UserName = "pdx_operator") {
+	guisize_entire := "h1040 w550"
+	guisize_listview := "h970 w546 "
+} else { ;
+	guisize_entire := "h900 w550"
+	guisize_listview := "h828 w546 "
+}
 ;SetTimer, Menu_File-Restart, -10800000	
 ;SetTimer, Menu_File-Restart, -240000	;FOR DEBUG ONLY
 
@@ -847,10 +890,10 @@ Global
 SGRDatafeeds_Array := []
 	Loop, Read, %A_ScriptDir%\Data\SGR_Locations.txt 
 	{
-	SystemName := Fn_QuickRegEx(A_LoopReadLine,"#\\\\(.+\d)\\")
-	FilePath := Fn_QuickRegEx(A_LoopReadLine,"#(\\\\.+)")
-	ShortName := Fn_QuickRegEx(A_LoopReadLine,"(.+)#\d")
-	Delay := Fn_QuickRegEx(A_LoopReadLine,"#(\d+)")
+	SystemName := Fn_QuickRegEx(A_LoopReadLine,"\\\\(.+\d)\\")
+	FilePath := Fn_QuickRegEx(A_LoopReadLine,"ath:'(.+?)'")
+	ShortName := Fn_QuickRegEx(A_LoopReadLine,"Name:'(.+?)'")
+	Delay := Fn_QuickRegEx(A_LoopReadLine,"Delay:'(.+?)'")
 	
 	If (The_DefaultSystemName != "" && InStr(SystemName,The_DefaultSystemName)) {
 	makedefault = 1
@@ -890,7 +933,7 @@ Gui, Font, ;Reset Font to normal
 
 ;Main View
 Gui, Font, s14 w10, Arial ;Needed so visible from far away
-Gui, Add, ListView, x2 y70 w546 h970 Grid +ReDraw gDoubleClick vGUI_Listview, Track|Code|MTP|Race|Last|Odds|WP|Comment
+Gui, Add, ListView, x2 y70 %guisize_listview% Grid +ReDraw gDoubleClick vGUI_Listview, Track|Code|MTP|Race|Last|Odds|WP|Comment
 
 
 
@@ -920,7 +963,7 @@ Gui, Menu, MenuBar
 	GUI_Y = 0
 	}
 
-Gui, Show, h1040 w550, % The_ProjectName
+Gui, Show, %guisize_entire%, % The_ProjectName
 	;Loop, 10 
 	;{
 	;Gui, Show, x%GUI_X% y%GUI_Y%, % The_ProjectName
@@ -1035,7 +1078,7 @@ Return
 }
 
 ViewDB:
-Array_Gui(AllTracks_Array)
+Array_Gui(ControlConsoleObj.ReturnTopObject())
 Return
 
 
