@@ -1,0 +1,6 @@
+Name:'AMTOTE1'	Delay:'0	FilePath:'\\tvgvprTGP01\tvg\LogFiles'
+Name:'AMTOTE2'	Delay:'0'	FilePath:'\\tvgvprTGP02\tvg\LogFiles'
+Name:'TVG-01'	Delay:'0'	FilePath:'\\tvgopstgp01\tvg\LogFiles'
+Name:'TVG-04'	Delay:'0'	FilePath:'\\tvgopstgp04\tvg\LogFiles'
+Name:'NJ-01'	Delay:'180'	FilePath:'\\njaopstgp01\tvg\LogFiles'
+Name:'NJ-02'	Delay:'180'	FilePath:'\\njaopstgp02\tvg\LogFiles'

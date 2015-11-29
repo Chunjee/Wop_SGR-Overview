@@ -10,7 +10,7 @@
 SetBatchLines -1 ;Go as fast as CPU will allow
 StartUp()
 The_ProjectName = SGR Overview
-The_VersionName = v0.4
+The_VersionName = v0.4_ALPHA
 
 ;Dependencies
 #Include %A_ScriptDir%\Functions
@@ -64,6 +64,7 @@ The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
 	The_Day := A_DD
 	The_Month := A_MM
 	The_Year := A_YYYY
+	The_FirstRUN := True
 	}
 
 ;Find the filepath
@@ -76,38 +77,50 @@ if (SGR_Location = "") {
 	Msgbox, "filepath of SDL could not be determined. Check ..\Data\SGR_Locations.txt"
 }
 
+;;AMTOTE ONLY HANDLING---------
+If (InStr(SGR_Choice,"tote")) {
 
-;BACKUP IDEA - DO NOT USE - SLOWER
-;RAWmessages_Array := ControlConsoleObj.ImportLatestMessages(SGR_Location, "2000")
-;ControlConsoleObj.IndexMessages()
-;Array_GUI(RAWmessages_Array)
+	;BACKUP IDEA - DO NOT USE - SLOWER
+	;RAWmessages_Array := ControlConsoleObj.ImportLatestMessages(SGR_Location, "2000")
+	;ControlConsoleObj.IndexMessages()
+	;Array_GUI(RAWmessages_Array)
 
-Fn_GUI_UpdateProgress(1)
+	Fn_GUI_UpdateProgress(1)
 
-;Start new Control Object; holds all tracks and other info; see class_ControlConsole
-	;also imports existing data if it exists
-ControlConsoleObj := New ControlConsole_Class(The_SystemName)
+	;Start new Control Object; holds all tracks and other info; see class_ControlConsole
+		;also imports existing data if it exists
+	ControlConsoleObj := New ControlConsole_Class(The_SystemName)
 
-ControlConsoleObj.ImportFiletoDB()
-ControlConsoleObj.ConsiderEarlyMessages(SGR_Location,2000)
-ControlConsoleObj.ParseMessages()
+	ControlConsoleObj.ImportFiletoDB()
 
-;Grab Raw XML from file and sort it into our own array of ids and messages
-ControlConsoleObj.ImportLatestMessages(SGR_Location,3000)
+		;consider top of the SDL file if first running for today
+		If (The_FirstRUN := True) {
+			ControlConsoleObj.ConsiderEarlyMessages(SGR_Location,3000)
+			ControlConsoleObj.ParseMessages()
+		}
 
-;Try to understand each message
-ControlConsoleObj.ParseMessages()
-;Update some of the GUI information off the latest message for each track
-ControlConsoleObj.UpdateOffLatestMessages()
-;Export to the GUI
-ControlConsoleObj.ExportListview()
 
-;Save to file for new Round
-ControlConsoleObj.SaveDBtoFile()
+	;Grab Raw XML from file and sort it into our own array of ids and messages
+	ControlConsoleObj.ImportLatestMessages(SGR_Location,3000)
 
-;Array_GUI(ControlConsoleObj.ReturnTopObject())
+	;Try to understand each message
+	ControlConsoleObj.ParseMessages()
+	;Update some of the GUI information off the latest message for each track
+	ControlConsoleObj.UpdateOffLatestMessages()
+	;Export to the GUI
+	ControlConsoleObj.ExportListview()
 
-Return
+	;Save to file for new Round
+	ControlConsoleObj.SaveDBtoFile()
+
+	;uncomment to view immediatly
+	;Array_GUI(ControlConsoleObj.ReturnTopObject())
+
+	Return
+}
+
+
+
 OldButton:
 ;DiableAllButtons()
 
@@ -888,7 +901,7 @@ if (A_UserName = "pdx_operator") {
 	
 ;Create Array and fill with data about each Data Collector
 SGRDatafeeds_Array := []
-	Loop, Read, %A_ScriptDir%\Data\SGR_Locations.txt 
+	Loop, Read, %A_ScriptDir%\Data\SDL_Locations.txt 
 	{
 	SystemName := Fn_QuickRegEx(A_LoopReadLine,"\\\\(.+\d)\\")
 	FilePath := Fn_QuickRegEx(A_LoopReadLine,"ath:'(.+?)'")
