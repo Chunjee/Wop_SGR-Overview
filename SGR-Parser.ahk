@@ -64,7 +64,6 @@ The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
 	The_Day := A_DD
 	The_Month := A_MM
 	The_Year := A_YYYY
-	The_FirstRUN := True
 	}
 
 ;Find the filepath
@@ -73,7 +72,7 @@ Loop, % SGRDatafeeds_Array.MaxIndex() {
 		SGR_Location := SGRDatafeeds_Array[A_Index,"FilePath"] "\" The_Month "-" The_Day "-" The_Year "\SGRData" The_Month "-" The_Day "-" The_Year ".txt"
 	}
 }
-if (SGR_Location = "") {
+If (SGR_Location = "") {
 	Msgbox, "filepath of SDL could not be determined. Check ..\Data\SGR_Locations.txt"
 }
 
@@ -87,16 +86,18 @@ If (InStr(SGR_Choice,"tote")) {
 
 	Fn_GUI_UpdateProgress(1)
 
-	;Start new Control Object; holds all tracks and other info; see class_ControlConsole
+	;Start new Control Object if the current one does not match what the user selected; holds all tracks and other info; see class_ControlConsole
 		;also imports existing data if it exists
-	ControlConsoleObj := New ControlConsole_Class(The_SystemName)
-
+		If (ControlConsoleObj.SystemName != The_SystemName) {
+			ControlConsoleObj := New ControlConsole_Class(The_SystemName)
+		}
 	ControlConsoleObj.ImportFiletoDB()
 
 		;consider top of the SDL file if first running for today
-		If (The_FirstRUN := True) {
-			ControlConsoleObj.ConsiderEarlyMessages(SGR_Location,3000)
+		If (ControlConsoleObj.FirstRun = True) {
+			ControlConsoleObj.ConsiderEarlyMessages(SGR_Location,4000)
 			ControlConsoleObj.ParseMessages()
+			ControlConsoleObj.FirstRun := False
 		}
 
 
@@ -113,6 +114,8 @@ If (InStr(SGR_Choice,"tote")) {
 	;Save to file for new Round
 	ControlConsoleObj.SaveDBtoFile()
 
+	;testing...
+	ControlConsoleObj.LoopAllTracks()
 	;uncomment to view immediatly
 	;Array_GUI(ControlConsoleObj.ReturnTopObject())
 
@@ -879,7 +882,7 @@ BuildGUI()
 {
 Global
 
-if (A_UserName = "pdx_operator") {
+if (InStr(A_ComputerName,"Board")) {
 	guisize_entire := "h1040 w550"
 	guisize_listview := "h970 w546 "
 } else { ;
@@ -999,21 +1002,6 @@ Gui, Show, %guisize_entire%, % The_ProjectName
 GoSub, AutoUpdate
 Return
 
-CheckResults:
-Return
-
-MsgTotalScratches:
-Msgbox, This shows the total number of coupled entry scratches
-Return
-
-MsgUnhandledScratches:
-Msgbox, This shows the number of coupled entries that have not been handled
-Return
-
-MsgEffectedEntries:
-Msgbox, This shows the number of coupled entries effected by scratches (1,1A,1X are considered a single entry)
-Return
-
 
 
 ;Options
@@ -1035,10 +1023,13 @@ RefreshMilli := Fn_QuickRegEx(GUI_RefreshAmmount,"(\d+)")
 	}
 Return
 
-DoubleClick:
-;Send Track to Json file so it won't be highlighted
+
+
+RightClick:
+;Send Track to Json file so it won't be highlighted. 
+msgbox, % A_GuiEvent
 	If A_GuiEvent = DoubleClick
-	{		
+	{
 	;Get the text from the row's fourth field. Runner Name
 	LV_GetText(RowText, A_EventInfo, 2)
 	RowText = %RowText% ;Remove spaces
@@ -1059,6 +1050,40 @@ DoubleClick:
 		Fn_ExportArray(IgnoredTracks,"IgnoredDB")
 		}
 	}
+Return
+
+DoubleClick:
+;expand out races information when track is double clicked
+	If (A_GuiEvent = "DoubleClick") {
+		LV_GetText(RowText, A_EventInfo, 2)
+		;RowText is now = TrackCode
+		If (RowText != "") {
+			ControlConsoleObj.ExpandTrack(RowText,A_EventInfo)
+		}
+	}
+
+If (A_GuiEvent = "R")	{
+	;Get the text from the row's fourth field. Runner Name
+	LV_GetText(RowText, A_EventInfo, 2)
+	RowText = %RowText% ;Remove spaces
+		If (RowText != "") {
+		;Load any existing DB from other Ops
+		IgnoredTracks := Fn_ImportDBData(IgnoredTracks,"IgnoredDB")
+			Loop, % IgnoredTracks.MaxIndex() {
+				If (RowText = IgnoredTracks[A_Index])
+				{
+				IgnoredTracks.Remove(A_Index)
+				Fn_ExportArray(IgnoredTracks,"IgnoredDB")
+				Return
+				}
+			}
+		;Add the new name and Export
+		IgnoredTracks.Insert(RowText)
+		
+		Fn_ExportArray(IgnoredTracks,"IgnoredDB")
+		}
+	}
+
 Return
 
 

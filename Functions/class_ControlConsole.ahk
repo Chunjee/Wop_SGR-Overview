@@ -3,25 +3,10 @@
 	__New(para_SystemName) {
 		;check for existing JSON file first
 		this.Track_Array := []
-		/*
-		For Key, Value in this.Track_Array {
-			X := A_Index
-		}
-		if (X = "") {
-			;for clarity only, create empty array if no file was loaded. (first run of today)
-			this.Track_Array := []
-		} else {
-			For Key, Value in this.Track_Array {
-				TrackCode := this.Track_Array[Key,"TrackCode"]
-				this.Track_Array[Key,"Object"] := new Track_Class(TrackCode)
-			}
-			;msgbox, objects re-created
-			ARRAY_GUI(this.Track_Array)
-		}
-		*/
+		this.SystemName := para_SystemName
+		this.FirstRun := True
 
 		this.Messages_Array := []
-
 		this.AnonamousRace := new Track_Class("XXX") ;Just used if we want to access some methods
 	}
 
@@ -125,11 +110,6 @@
 		;Figure out what type of message it is
 		MessageType := Fn_QuickRegEx(para_message,"0OD\d{4}([A-Z]{2})")
 		TrackCode := this.AnonamousRace.ExtractTrackCode(para_message)
-		if (InStr(para_message,"DOWNS EVE")) {
-			clipboard := para_message
-			;msgbox, % para_message
-			FileAppend, `n`r%TrackCode% - %para_message%, %A_ScriptDir%\ErrorLog.txt
-		}
 
 		if (!IsObject(this.Track_Array[TrackCode,"MostRecentMessageTypeArray"])) {
 			this.Track_Array[TrackCode,"MostRecentMessageTypeArray"] := []
@@ -172,7 +152,6 @@
 
 
 
-
 			;Is Track done with all races?
 			if (this.Track_Array[Key,"TotalRaces"] = this.Track_Array[Key,"CurrentRace"]) {
 				if (this.Track_Array[Key,"OfficialRace"] = this.Track_Array[Key,"TotalRaces"]) {
@@ -184,6 +163,31 @@
 			this.Track_Array[Key,"Completed"] := False
 			}
 		}
+	}
+
+
+	LoopAllTracks() {
+		For Key, in this.Track_Array {
+			if (this.Track_Array[Key,"TotalRaces"] != "??") {
+				this.CreatRacesDepth(Key,this.Track_Array[Key,"TotalRaces"])
+			}
+		}
+	}
+
+
+	CreatRacesDepth(para_TrackCode, para_Races) {
+		;strip out any leading 0
+		para_Races2 := Fn_QuickRegEx(para_Races,"0(\d)")
+			If (para_Races2 != "null") {
+				para_Races := para_Races2
+			}
+		If (this.Track_Array[para_TrackCode,"Races"].MaxIndex() != para_Races) {
+			this.Track_Array[para_TrackCode,"Races"] := []
+			Loop, % para_Races {
+				this.Track_Array[para_TrackCode,"Races"].Insert("Race" . A_Index)
+			}
+		}
+		
 	}
 
 
@@ -203,17 +207,16 @@
 		For Key, in this.Track_Array {
 			if (this.Track_Array[Key,"Completed"] = False){
 				;Export 
-				LV_Add("",this.GUI_Array[Key,"TrackName"],this.GUI_Array[Key,"TrackCode"],this.GUI_Array[Key,"MTP"],this.GUI_Array[Key,"GUI_Race"],"",this.Track_Array[Key,"Odds"],this.Track_Array[Key,"WillPay"],this.Track_Array[Key,"Comment"])
+				this.ExportLV(Key)
 				}
-			
 		}
 
 
 		;Loop all tracks and export to listview if race is not finished
 		For Key, in this.Track_Array {
 			if (this.Track_Array[Key,"Completed"] = True){
-				;Export 
-				LV_Add("",this.GUI_Array[Key,"TrackName"],this.GUI_Array[Key,"TrackCode"],this.GUI_Array[Key,"MTP"],this.GUI_Array[Key,"GUI_Race"],"",this.Track_Array[Key,"Odds"],this.Track_Array[Key,"WillPay"],this.Track_Array[Key,"Comment"])
+				;Export
+				this.ExportLV(Key)
 			}
 		}
 
@@ -226,8 +229,23 @@
 	}
 
 
-	FindTrack(para_TrackCode) {
+	ExportLV(para_key) {
+		LV_Add("",this.GUI_Array[para_key,"TrackName"],this.GUI_Array[para_key,"TrackCode"],this.GUI_Array[para_key,"MTP"],this.GUI_Array[para_key,"GUI_Race"],"",this.Track_Array[para_key,"Odds"],this.Track_Array[para_key,"WillPay"],this.Track_Array[para_key,"Comment"])
+	}
 
+
+	ExpandTrack(para_TrackCode,para_RowNumber) {
+		for Key in this.GUI_Array
+		{
+			this.ExportLV(Key)
+			if (para_TrackCode = this.GUI_Array[Key,"TrackCode"]) {
+				;Export all races about that track
+				Loop, % this.Track_Array[para_TrackCode,"Races"].MaxIndex()	{
+					para_RowNumber++
+					LV_Insert(para_RowNumber, ,"Race " . A_Index)
+				}
+			}
+		}
 	}
 
 
