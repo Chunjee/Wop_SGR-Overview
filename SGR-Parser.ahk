@@ -114,8 +114,6 @@ If (InStr(SGR_Choice,"tote")) {
 	;Save to file for new Round
 	ControlConsoleObj.SaveDBtoFile()
 
-	;testing...
-	ControlConsoleObj.LoopAllTracks()
 	;uncomment to view immediatly
 	;Array_GUI(ControlConsoleObj.ReturnTopObject())
 

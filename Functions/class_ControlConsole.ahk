@@ -118,14 +118,71 @@
 		
 
 		If (MessageType = "RN") {
+			this.RN_Messages(para_message)
 			;Remember this message for total races if more than once race is defined
 			TotalRaces_SmokeCheck := Fn_QuickRegEx(para_message,"\d{4}[\d\w]{3}\W+.+L.\d+(L)")
 			If (TotalRaces_SmokeCheck = "L") {
 				this.Track_Array[TrackCode,"MostRecentMessageTypeArray"]["RN_AllRaces"] := para_message
+				Return
 			}
 		}
 		Return
 	}
+
+	;RN----------------------------------------------------------------------------------------------------------------
+	RN_Messages(para_message) {
+		TrackCode := this.AnonamousRace.ExtractTrackCode(para_message)
+		Race := this.RN_GetRace(para_message)
+		Runners := this.RN_GetRunners(para_message)
+		Scratches := this.RN_GetScratches(para_message)
+
+		;make sure race array exists
+		If (!IsObject(this.Track_Array[TrackCode,"Races"])) {
+						this.Track_Array[TrackCode,"Races"] := []
+					}
+
+		;add fun info to race array
+		this.Track_Array[TrackCode,"Races"][Race,"Runners"] := Runners
+		this.Track_Array[TrackCode,"Races"][Race,"Scratches"] := Runners
+	}
+	RN_GetRace(para_message) {
+		TrackCode := this.AnonamousRace.ExtractTrackCode(para_message)
+		REG := TrackCode . " (\d{2})"
+		l_String := Fn_QuickRegEx(para_message, REG)
+		If (l_String != "null") {
+			Race := Fn_QuickRegEx(l_String,"0(\d)")
+			If (Race = "null") {
+				Race := l_String
+			}
+			Return % Race
+		}
+	}
+	RN_GetRunners(para_message) {
+		TrackCode := this.AnonamousRace.ExtractTrackCode(para_message)
+		REG := TrackCode . " (\d{6}.+)"
+		l_String := Fn_QuickRegEx(para_message, REG)
+		If (l_String != "null") {
+			l_String := Fn_QuickRegEx(l_String,"\d([LS]+)")
+			;While (InStr(l_String,"L") || InStr(l_String,"S")) ;wait no faster to just count length of "LLLLLLSLSLSLL"
+			If (l_String != "null") {
+				OutputVar := StrLen(l_String)
+				Return % OutputVar
+			}
+		}
+	}
+	RN_GetScratches(para_message) {
+		TrackCode := this.AnonamousRace.ExtractTrackCode(para_message)
+		REG := TrackCode . " (\d{6}.+)"
+		l_String := Fn_QuickRegEx(para_message, REG)
+		clipboard := para_message
+		If (l_String != "null") {
+			l_String := Fn_QuickRegEx(l_String,"\d([LS]+)")
+			StrReplace(l_String,"S","", OutputVarCount)
+		}
+		Return % OutputVarCount
+	}
+	
+
 
 	UpdateOffLatestMessages() {
 	;Grab most recent information for GUI display
@@ -223,7 +280,7 @@
 
 		;resize listview to my happiness
 		LV_ModifyCol()
-		LV_ModifyCol(1, 160)
+		LV_ModifyCol(1, 170)
 		LV_ModifyCol(3, 60)
 		LV_ModifyCol(4, 70)
 	}
@@ -242,7 +299,9 @@
 				;Export all races about that track
 				Loop, % this.Track_Array[para_TrackCode,"Races"].MaxIndex()	{
 					para_RowNumber++
-					LV_Insert(para_RowNumber, ,"Race " . A_Index)
+					Runners := this.Track_Array[para_TrackCode,"Races"][A_Index,"Runners"]
+					Scratches := this.Track_Array[para_TrackCode,"Races"][A_Index,"Scratches"]
+					LV_Insert(para_RowNumber, ,"Race " A_Index "  R:" Runners " S:"Scratches)
 				}
 			}
 		}
