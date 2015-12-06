@@ -709,8 +709,9 @@ A_LF := "`n"
 ;Temp
 FileCreateDir, %A_ScriptDir%\Data
 FileCreateDir, %A_ScriptDir%\Data\DB
-;FileCreateDir, %A_ScriptDir%\Data\Temp ;DEPRECIATED
-FileInstall, Data\SGR_Locations.txt, %A_ScriptDir%\Data\SGR_Locations.txt, 0
+
+;install default file if none exists
+FileInstall, Data\SDL_Locations.txt, %A_ScriptDir%\Data\SDL_Locations.txt, 0
 }
 
 
