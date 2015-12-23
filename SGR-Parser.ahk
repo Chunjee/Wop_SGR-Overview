@@ -1,7 +1,8 @@
 ﻿;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
 ; Description
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
-; Checks each platform for willpay and probable data. Hopefully it can eventually illuminate other problems at tote
+; Displays the selected SDL file. Showing current/total races for each track. Also shows willpay and probable data. 
+; Tries to illuminate other problems at tote like missing message types.
 ;
 
 ;~~~~~~~~~~~~~~~~~~~~~
@@ -9,8 +10,8 @@
 ;~~~~~~~~~~~~~~~~~~~~~
 SetBatchLines -1 ;Go as fast as CPU will allow
 StartUp()
-The_ProjectName = SGR Overview
-The_VersionName = v0.4_ALPHA
+The_ProjectName = SDL Overview
+The_VersionName = v0.4.0
 
 ;Dependencies
 #Include %A_ScriptDir%\Functions
@@ -35,13 +36,16 @@ Sb_RemoteShutDown() ;Allows for remote shutdown
 StartInternalGlobals()
 RecalculateToday = 1
 
+;Remember any CLI argument as a global variable
+CLI_Arg = %1%
+
 ;~~~~~~~~~~~~~~~~~~~~~
 ;GUI
 ;~~~~~~~~~~~~~~~~~~~~~
 BuildGUI()
 LVA_ListViewAdd("GUI_Listview")
 ;Return
-#Include xml_parser.ahk
+
 
 ;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
 ;MAIN PROGRAM STARTS HERE
@@ -65,6 +69,7 @@ The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
 	The_Month := A_MM
 	The_Year := A_YYYY
 	}
+
 
 ;Find the filepath
 Loop, % SGRDatafeeds_Array.MaxIndex() {
@@ -91,7 +96,16 @@ If (InStr(SGR_Choice,"tote")) {
 		If (ControlConsoleObj.SystemName != The_SystemName) {
 			ControlConsoleObj := New ControlConsole_Class(The_SystemName)
 		}
+
+	;Only import tracks after 5:00 AM and before 11:00PM
+	If (A_Hour < 23 && A_Hour > 04) {
+	The_UseDB = True
+	} else {
+	The_UseDB = False
+	}
+	If (The_UseDB) {
 	ControlConsoleObj.ImportFiletoDB()
+	}
 
 		;consider top of the SDL file if first running for today
 		If (ControlConsoleObj.FirstRun = True) {
@@ -112,7 +126,9 @@ If (InStr(SGR_Choice,"tote")) {
 	ControlConsoleObj.ExportListview()
 
 	;Save to file for new Round
-	ControlConsoleObj.SaveDBtoFile()
+	If (The_UseDB) {
+		ControlConsoleObj.SaveDBtoFile()
+	}
 
 	;uncomment to view immediatly
 	;Array_GUI(ControlConsoleObj.ReturnTopObject())
@@ -984,13 +1000,13 @@ Gui, Show, %guisize_entire%, % The_ProjectName
 	;Gui, Show, x%GUI_X% y%GUI_Y%, % The_ProjectName
 	;}
 	
-	If (InStr(The_ProjectName,"VIA")) {
+	If (InStr(CLI_Arg,"tvg")) {
 		Loop, 10
 		{
 		Gui, Show, x1920 y-1, % The_ProjectName
 		}
 	}
-	If (InStr(The_ProjectName,"NJ")) {
+	If (InStr(CLI_Arg,"nj")) {
 		Loop, 10
 		{
 		Gui, Show, x2480 y-1, % The_ProjectName
@@ -1088,7 +1104,7 @@ Return
 
 ;Menu Shortcuts
 Menu_Confluence:
-Run http://confluence.tvg.com/pages/viewpage.action?pageId=11468878
+Run, http://confluence.tvg.com/display/wog/Ops+Tool+-+SDL+Overview
 Return
 
 Menu_About:

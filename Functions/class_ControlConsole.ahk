@@ -174,7 +174,7 @@
 		TrackCode := this.AnonamousRace.ExtractTrackCode(para_message)
 		REG := TrackCode . " (\d{6}.+)"
 		l_String := Fn_QuickRegEx(para_message, REG)
-		clipboard := para_message
+		;clipboard := para_message
 		If (l_String != "null") {
 			l_String := Fn_QuickRegEx(l_String,"\d([LS]+)")
 			StrReplace(l_String,"S","", OutputVarCount)
