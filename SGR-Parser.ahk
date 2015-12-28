@@ -11,7 +11,7 @@
 SetBatchLines -1 ;Go as fast as CPU will allow
 StartUp()
 The_ProjectName = SDL Overview
-The_VersionName = v0.4.0
+The_VersionName = v0.4.1
 
 ;Dependencies
 #Include %A_ScriptDir%\Functions
@@ -102,6 +102,8 @@ If (InStr(SGR_Choice,"tote")) {
 	The_UseDB = True
 	} else {
 	The_UseDB = False
+	;forget everything you know about today and use a whole new object
+	ControlConsoleObj := New ControlConsole_Class(The_SystemName)
 	}
 	If (The_UseDB) {
 	ControlConsoleObj.ImportFiletoDB()
