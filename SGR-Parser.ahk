@@ -11,7 +11,7 @@
 SetBatchLines -1 ;Go as fast as CPU will allow
 StartUp()
 The_ProjectName = SDL Overview
-The_VersionName = v0.4.1
+The_VersionName = v0.4.3
 
 ;Dependencies
 #Include %A_ScriptDir%\Functions
@@ -97,24 +97,25 @@ If (InStr(SGR_Choice,"tote")) {
 			ControlConsoleObj := New ControlConsole_Class(The_SystemName)
 		}
 
-	;Only import tracks after 5:00 AM and before 11:00PM
-	If (A_Hour < 23 && A_Hour > 04) {
+	;After 5:00AM and Before 11:00PM
+	If (A_Hour < 23 && Fn_StripleadingZero(A_Hour) > 4) {
 	The_UseDB = True
 	} else {
 	The_UseDB = False
-	;forget everything you know about today and use a whole new object
-	ControlConsoleObj := New ControlConsole_Class(The_SystemName)
 	}
 	If (The_UseDB) {
 	ControlConsoleObj.ImportFiletoDB()
+	} else {
+	;forget everything you know about today and use a whole new object
+	ControlConsoleObj := New ControlConsole_Class(The_SystemName)
 	}
 
-		;consider top of the SDL file if first running for today
-		If (ControlConsoleObj.FirstRun = True) {
-			ControlConsoleObj.ConsiderEarlyMessages(SGR_Location,4000)
-			ControlConsoleObj.ParseMessages()
-			ControlConsoleObj.FirstRun := False
-		}
+	;consider top of the SDL file if first run of today
+	If (ControlConsoleObj.FirstRun = True) {
+		ControlConsoleObj.ConsiderEarlyMessages(SGR_Location,4000)
+		ControlConsoleObj.ParseMessages()
+		ControlConsoleObj.FirstRun := False
+	}
 
 
 	;Grab Raw XML from file and sort it into our own array of ids and messages
@@ -889,7 +890,26 @@ MemoryFile := []
 }
 
 
+Fn_DeleteTodaysDB()
+{
+	FormatTime, A_Today, , yyyyMMdd
+	ExternalDB_dir = %A_ScriptDir%\Data\DB\%A_Today%*.json
+	Loop, % ExternalDB_dir
+	{
+		FileDelete, % A_LoopFileFullPath
+	}
+}
 
+
+Fn_StripleadingZero(para_input)
+{
+	OutputVar := Fn_QuickRegEx(para_input,"0(\d+)")
+	If (OutputVar = "null") {
+		return % para_input
+	} else {
+		return % OutputVar
+	}
+}
 
 ;~~~~~~~~~~~~~~~~~~~~~
 ;GUI
@@ -956,6 +976,7 @@ Gui, Add, Tab, x2 y0 h1050 w550  , Main|Options
 ;Main Tab
 Gui, Add, Button, x2 y30 w100 h30 gUpdateButton, Update
 Gui, Add, Button, x302 y30 w50 h30 gViewDB, View DB
+Gui, Add, Button, x352 y30 w50 h30 gForgetAll, Forget
 
 Gui, Font, s13 w700, Arial
 Gui, Add, DropDownList, x102 y32 w200 vSGR_Choice, %DataFeed_List%
@@ -1044,7 +1065,6 @@ Return
 
 RightClick:
 ;Send Track to Json file so it won't be highlighted. 
-msgbox, % A_GuiEvent
 	If A_GuiEvent = DoubleClick
 	{
 	;Get the text from the row's fourth field. Runner Name
@@ -1136,6 +1156,10 @@ ViewDB:
 Array_Gui(ControlConsoleObj.ReturnTopObject())
 Return
 
+ForgetAll:
+Fn_DeleteTodaysDB()
+;; Object.Update() would be nice here if this had been designed objectively
+Return
 
 Fn_GUI_UpdateProgress(para_Progress1, para_Progress2 = 0)
 {
