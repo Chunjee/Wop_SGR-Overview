@@ -11,7 +11,7 @@
 SetBatchLines -1 ;Go as fast as CPU will allow
 StartUp()
 The_ProjectName = SDL Overview
-The_VersionName = v0.4.3
+The_VersionName = v0.4.4
 
 ;Dependencies
 #Include %A_ScriptDir%\Functions
@@ -293,7 +293,7 @@ Fn_GUI_UpdateProgress(0)
 		; RI - RACE INFORMATION MESSAGE TYPE ##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##
 		If (MessageType = "RI") {
 		;Get Next Post time
-		NextPost := Fn_QuickRegEx(FULL_MESSAGE,"(\d{4})\d{2}TRACK")
+		NextPost := Fn_QuickRegEx(FULL_MESSAGE,"(\d{4})\d{2}(TRACK|TURF)")
 		
 		;Get Current Race as shown by RI message
 		REG := TrackCode . "\d\w+\W+(\d{2})"
@@ -509,7 +509,7 @@ Loop, % AllTracks_Array.MaxIndex() {
 		;}
 		
 	
-	;TRACK COMPLETED?
+	;Track Completed?
 	If (AllTracks_Array[A_Index,"TotalRaces"] = AllTracks_Array[A_Index,"OfficialRace"] && AllTracks_Array[A_Index,"TotalRaces"] != "") {
 	AllTracks_Array[A_Index,"Completed"] := True
 	AllTracks_Array[A_Index,"Comment"] := ""
