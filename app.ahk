@@ -1,7 +1,7 @@
 ﻿;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
 ; Description
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
-; Displays the selected SDL file. Showing current/total races for each track. Also shows willpay and probable data. 
+; Displays the selected SDL file. Showing current/total races for each track. Also shows willpay and probable data.
 ; Tries to illuminate other problems at tote like missing message types.
 ;
 
@@ -10,8 +10,8 @@
 ;~~~~~~~~~~~~~~~~~~~~~
 SetBatchLines -1 ;Go as fast as CPU will allow
 StartUp()
-The_ProjectName = SDL Overview
-The_VersionName = v0.4.4
+The_ProjectName := "SDL Overview"
+The_VersionName := "v0.4.4"
 
 ;Dependencies
 #Include %A_ScriptDir%\Functions
@@ -34,17 +34,17 @@ The_VersionName = v0.4.4
 Sb_RemoteShutDown() ;Allows for remote shutdown
 ;###Invoke and set Global Variables
 StartInternalGlobals()
-RecalculateToday = 1
+RecalculateToday := 1
 
 ;Remember any CLI argument as a global variable
-CLI_Arg = %1%
+CLI_Arg := 1
 
 ;~~~~~~~~~~~~~~~~~~~~~
 ;GUI
 ;~~~~~~~~~~~~~~~~~~~~~
 BuildGUI()
 LVA_ListViewAdd("GUI_Listview")
-;Return
+;return
 
 
 ;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
@@ -55,16 +55,16 @@ UpdateTimer:
 ;User pressed Update Button or automatic Timer has expired
 UpdateButton:
 
-;This has to be before any importing of data because it is dependant on The_SystemName 
+;This has to be before any importing of data because it is dependant on The_SystemName
 ;Get user selected or default SGR location and convert into full path to file
 Gui, Submit, NoHide
 The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
-	If (The_SystemName = "" || The_SystemName = "null") {
+	if (The_SystemName == "" || The_SystemName == "null") {
 	Msgbox, There was a problem reading the system name, please check SGR_Locations.txt and try again.
 	}
 
 ;Change date if current time is 1:00 AM or if run for the first time (The_Day is blank)
-	If (A_Hour = "01" || The_Day = "") {
+	if (A_Hour == "01" || The_Day == "") {
 	The_Day := A_DD
 	The_Month := A_MM
 	The_Year := A_YYYY
@@ -72,17 +72,17 @@ The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
 
 
 ;Find the filepath
-Loop, % SGRDatafeeds_Array.MaxIndex() {
-	if (The_SystemName = SGRDatafeeds_Array[A_Index,"SystemName"]) {
+loop, % SGRDatafeeds_Array.MaxIndex() {
+	if (The_SystemName == SGRDatafeeds_Array[A_Index,"SystemName"]) {
 		SGR_Location := SGRDatafeeds_Array[A_Index,"FilePath"] "\" The_Month "-" The_Day "-" The_Year "\SGRData" The_Month "-" The_Day "-" The_Year ".txt"
 	}
 }
-If (SGR_Location = "") {
+if (SGR_Location == "") {
 	Msgbox, "filepath of SDL could not be determined. Check ..\Data\SGR_Locations.txt"
 }
 
 ;;AMTOTE ONLY HANDLING---------
-If (InStr(SGR_Choice,"tote")) {
+if (InStr(SGR_Choice,"tote")) {
 
 	;BACKUP IDEA - DO NOT USE - SLOWER
 	;RAWmessages_Array := ControlConsoleObj.ImportLatestMessages(SGR_Location, "2000")
@@ -93,17 +93,17 @@ If (InStr(SGR_Choice,"tote")) {
 
 	;Start new Control Object if the current one does not match what the user selected; holds all tracks and other info; see class_ControlConsole
 		;also imports existing data if it exists
-		If (ControlConsoleObj.SystemName != The_SystemName) {
+		if (ControlConsoleObj.SystemName != The_SystemName) {
 			ControlConsoleObj := New ControlConsole_Class(The_SystemName)
 		}
 
 	;After 5:00AM and Before 11:00PM
-	If (A_Hour < 23 && Fn_StripleadingZero(A_Hour) > 4) {
-	The_UseDB = True
+	if (A_Hour < 23 && Fn_StripleadingZero(A_Hour) > 4) {
+	The_UseDB == true
 	} else {
-	The_UseDB = False
+	The_UseDB == false
 	}
-	If (The_UseDB) {
+	if (The_UseDB) {
 	ControlConsoleObj.ImportFiletoDB()
 	} else {
 	;forget everything you know about today and use a whole new object
@@ -111,7 +111,7 @@ If (InStr(SGR_Choice,"tote")) {
 	}
 
 	;consider top of the SDL file if first run of today
-	If (ControlConsoleObj.FirstRun = True) {
+	if (ControlConsoleObj.FirstRun == true) {
 		ControlConsoleObj.ConsiderEarlyMessages(SGR_Location,4000)
 		ControlConsoleObj.ParseMessages()
 		ControlConsoleObj.FirstRun := False
@@ -129,14 +129,14 @@ If (InStr(SGR_Choice,"tote")) {
 	ControlConsoleObj.ExportListview()
 
 	;Save to file for new Round
-	If (The_UseDB) {
+	if (The_UseDB) {
 		ControlConsoleObj.SaveDBtoFile()
 	}
 
 	;uncomment to view immediatly
-	;Array_GUI(ControlConsoleObj.ReturnTopObject())
+	;Array_GUI(ControlConsoleObj.returnTopObject())
 
-	Return
+	return
 }
 
 
@@ -150,59 +150,59 @@ The_UnknownmessageCounter := 0
 
 
 ;Change date if current time is 1:00 AM or if run for the first time. The_Day is blank
-	If (A_Hour = "01" || The_Day = "") {
+	if (A_Hour == "01" || The_Day == "") {
 	The_Day := A_DD
 	The_Month := A_MM
 	The_Year := A_YYYY
 	}
-	
-	
+
+
 ;Clear both Objects and re-import any existing data for today (so we don't forget about tracks
 Txt_Array := []
 
 AllTracks_Array := []
 IgnoredTracks := []
 
-;This has to be before any importing of data because it is dependant on The_SystemName 
+;This has to be before any importing of data because it is dependant on The_SystemName
 ;Get user selected or default SGR location and convert into full path to file
 Gui, Submit, NoHide
 The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
-	If (The_SystemName = "" || The_SystemName = "null") {
+	if (The_SystemName == "" || The_SystemName == "null") {
 	Msgbox, There was a problem reading the system name, please check SGR_Locations.txt and try again.
-	Return
+	return
 	}
 
 ;Grab delay time for current selected datafeed
-Loop, % SGRDatafeeds_Array.MaxIndex()
+loop, % SGRDatafeeds_Array.MaxIndex()
 {
-	If (SGRDatafeeds_Array[A_Index,"SystemName"] = The_SystemName) {
+	if (SGRDatafeeds_Array[A_Index,"SystemName"] == The_SystemName) {
 	MTPDelay := SGRDatafeeds_Array[A_Index,"Delay"]
 	}
 }
 
 
 ;Only import tracks after 5:00 AM and before 11:00PM
-If (A_Hour < 23 && A_Hour > 04) {
-The_UseDB = True
+if (A_Hour < 23 && A_Hour > 04) {
+The_UseDB := true
 AllTracks_Array := Fn_ImportDBData(AllTracks_Array,"MainDB")
 IgnoredTracks := Fn_ImportDBData(AllTracks_Array,"IgnoredDB")
-} Else {
-The_UseDB = False
+} else {
+The_UseDB := false
 }
 
 
 ;Get user selected or default SGR location and convert into full path to file
 Gui, Submit, NoHide
 The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
-	If (The_SystemName = "" || The_SystemName = "null") {
+	if (The_SystemName == "" || The_SystemName == "null") {
 	Msgbox, There was a problem reading the system name, please check SGR_Locations.txt and try again.
-	Return
+	return
 	}
 
 ;Grab delay time for current selected datafeed
-Loop, % SGRDatafeeds_Array.MaxIndex()
+loop, % SGRDatafeeds_Array.MaxIndex()
 {
-	If (SGRDatafeeds_Array[A_Index,"SystemName"] = The_SystemName) {
+	if (SGRDatafeeds_Array[A_Index,"SystemName"] == The_SystemName) {
 	MTPDelay := SGRDatafeeds_Array[A_Index,"Delay"]
 	}
 }
@@ -231,9 +231,9 @@ SGR_Location = \\%The_SystemName%\tvg\LogFiles\%The_Month%-%The_Day%-%The_Year%\
 ;Clear temp folder and copy selected SGR datafile from production to temp location
 ;FilePath_SGRDir = %A_ScriptDir%\Data\Temp\%The_SystemName%
 
-	;Read the last 2000 lines from the SGR file if the file exists. Returns an array object with each line as an element
+	;Read the last 2000 lines from the SGR file if the file exists. returns an array object with each line as an element
 	if (FileExist(SGR_Location)) {
-	Txt_Array := Fn_FileTail(SGR_Location, 2000) 
+	Txt_Array := Fn_FileTail(SGR_Location, 2000)
 	} else {
 	FileAppend, `n`r%A_Now% - SGR File not created yet on %The_SystemName%, %A_ScriptDir%\ErrorLog.txt
 	LVA_EraseAllCells("GUI_Listview")
@@ -246,38 +246,38 @@ SGR_Location = \\%The_SystemName%\tvg\LogFiles\%The_Month%-%The_Day%-%The_Year%\
 	return
 	}
 
-	;If (Txt_Array.MaxIndex() <= 100){
+	;if (Txt_Array.MaxIndex() <= 100){
 	;FileAppend, `n`r%A_Now% - Very Small Text Array, %A_ScriptDir%\ErrorLog.txt
-	;Return
+	;return
 	;}
-	
+
 ;Remove special options from progressbar and go back to normal
 Fn_GUI_UpdateProgress(0)
 ;GuiControl, -hwndMARQ1 -%PBS_MARQUEE%, UpdateProgress
 
 
 	;Read Each line of the new Txt_Array for relevant messages, pull trackname and trackcode out
-	Loop, % Txt_Array.MaxIndex() 
+	loop, % Txt_Array.MaxIndex()
 	{
 	Fn_GUI_UpdateProgress(A_Index, Txt_Array.MaxIndex())
 	MessageLength :=
-	TrackCode := 
-	TrackName := 
-	TimeStamp := 
-	MessageType := 
-	NextPost := 
+	TrackCode :=
+	TrackName :=
+	TimeStamp :=
+	MessageType :=
+	NextPost :=
 	CurrentRace :=
-	OfficialRace :=	
+	OfficialRace :=
 	ProbableType :=
-	TrackOfficial := 
-	TotalRaces := 
+	TrackOfficial :=
+	TotalRaces :=
 	;Faster to read from var than object? Simpler perhaps...
 	FULL_MESSAGE := Txt_Array[A_Index]
 		if (StrLen(FULL_MESSAGE) <= 3) {
 		FileAppend, `n`r%A_Now% - Very short Message: %FULL_MESSAGE%, %A_ScriptDir%\ErrorLog.txt
 		}
-		
-	
+
+
 	;Legacy RegEx: "message=...........[A-Z]{2}([a-zA-Z 0-7_]+[a-zA-Z_]([0-9]|\W[0-9]|\W))\W+00\d+([A-Z]|[A-Z0-9]){3}"
 	TrackCode := Fn_QuickRegEx(FULL_MESSAGE,"\W{2}00...(\w{3})")
 		if (TrackCode != "") {
@@ -285,122 +285,121 @@ Fn_GUI_UpdateProgress(0)
 		TrackName := Fn_QuickRegEx(FULL_MESSAGE,REG)
 		TimeStamp := Fn_QuickRegEx(FULL_MESSAGE,"timestamp=.\d{2}\/\d{2}\/\d{4}\W(\d{2}:\d{2})")
 		MessageType := Fn_QuickRegEx(FULL_MESSAGE,"message=...........([A-Z]{2})")
-		} Else {
+		} else {
 		The_UnknownmessageCounter++
-		Continue
+		continue
 		}
 
 		; RI - RACE INFORMATION MESSAGE TYPE ##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##
-		If (MessageType = "RI") {
+		if (MessageType == "RI") {
 		;Get Next Post time
 		NextPost := Fn_QuickRegEx(FULL_MESSAGE,"(\d{4})\d{2}(TRACK|TURF)")
-		
+
 		;Get Current Race as shown by RI message
 		REG := TrackCode . "\d\w+\W+(\d{2})"
 		CurrentRace := Fn_QuickRegEx(FULL_MESSAGE,REG)
 			;Is this track official?
-			If (InStr(FULL_MESSAGE,"OFFICIAL") && TrackCode != "null") {
+			if (InStr(FULL_MESSAGE,"OFFICIAL") && TrackCode != "null") {
 			TrackOfficial := 1
 				;Which race is official exactly?
 				REG := TrackCode . "\d+\w*\W+(\d{2})"
 				OfficialRace := Fn_QuickRegEx(FULL_MESSAGE,REG)
-			} Else {
+			} else {
 			TrackOfficial := 0
 			}
 		}
-		
+
 		;PB - FEATURED PROBABLES MESSAGE TYPE ##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##
-		If (MessageType = "PB") {
+		if (MessageType == "PB") {
 		REG := TrackCode . "\d+(\s+|\w+)\s\d+(\w+)"
 		ProbableType := Fn_QuickRegEx(FULL_MESSAGE,REG,2)
 		REG := TrackCode . "\d+\w+\s\d+\w+\s\d{2}"
 		ProbableRace := Fn_QuickRegEx(FULL_MESSAGE,REG)
 		}
-		
+
 		;RN - SCRATCHED RUNNERS MESSAGE TYPE ##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##
-		If (MessageType = "RN") {
+		if (MessageType == "RN") {
 		TotalRaces := Fn_QuickRegEx(FULL_MESSAGE,"\W+00\d+(([A-Z]|[A-Z0-9]){3})\w+\W+\d{6}(\d{2})",3)
 		}
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		;Determine if this track exists already in AllTracks_Array and select it with Track_Index
-;- FIXED - This HAD a weakness that it will not record timestamps until the 2nd message is seen because the track doesn't exist in the array until the 2nd pass.
-		If (Track != "null" && TimeStamp != "null" && MessageType != "null") {
+
+
+
+
+
+
+
+
+
+
+		; Determine if this track exists already in AllTracks_Array and select it with Track_Index
+		;- FIXED - This HAD a weakness that it will not record timestamps until the 2nd message is seen because the track doesn't exist in the array until the 2nd pass.
+		if (Track != "null" && TimeStamp != "null" && MessageType != "null") {
 		TrackFound_Bool := False
-			Loop, % AllTracks_Array.MaxIndex() {
-				;If (AllTracks_Array[A_Index,"TrackName"] = Track) {
-				If (AllTracks_Array[A_Index,"TrackCode"] = TrackCode) {
+			loop, % AllTracks_Array.MaxIndex() {
+				if (AllTracks_Array[A_Index,"TrackCode"] == TrackCode) {
 				Track_Index := A_Index
-				TrackFound_Bool = True
+				TrackFound_Bool := true
 				}
 			}
-			If (TrackFound_Bool = False && TrackCode != "") {
+			if (TrackFound_Bool == false && TrackCode != "") {
 			Track_Index := AllTracks_Array.MaxIndex()
 			Track_Index++
 			AllTracks_Array[Track_Index,"TrackCode"] := TrackCode
 			}
-			
-			
-			
+
+
+
 			;Ok insert data to correct track; New track is done being added/Existing track is selected
 			AllTracks_Array[Track_Index,MessageType] := TimeStamp ;Note this is sending timestamp to MessageType not "MessageType"; its an element deeper in the array
 			AllTracks_Array[Track_Index,"TimeStamp"] := TimeStamp
 			AllTracks_Array[Track_Index,"TrackCode"] := TrackCode
 			AllTracks_Array[Track_Index,"TrackName"] := TrackName
-				
+
 				; PB - ##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##
-				If (MessageType = "PB") {
+				if (MessageType == "PB") {
 					;Don't rember
-					If (AllTracks_Array[Track_Index,"CurrentRace"] != AllTracks_Array[Track_Index,"ProbableRace"]) {
+					if (AllTracks_Array[Track_Index,"CurrentRace"] != AllTracks_Array[Track_Index,"ProbableRace"]) {
 					AllTracks_Array[Track_Index,"ProbableType"] := ""
 					}
 					;Nope
-					If (MessageType = "PB" && ProbableType != "null") {
+					if (MessageType == "PB" && ProbableType != "null") {
 					AllTracks_Array[Track_Index,"ProbableType"] := AllTracks_Array[Track_Index,"ProbableType"] . A_Space . ProbableType
 					AllTracks_Array[Track_Index,"ProbableRace"] := ProbableRace
 					}
-					;If the message includes a 99/1 odds for 3 different runners. WEAK
-					If (InStr(FULL_MESSAGE,"000099999800009999980000999998")) {
+					;if the message includes a 99/1 odds for 3 different runners. WEAK
+					if (InStr(FULL_MESSAGE,"000099999800009999980000999998")) {
 					AllTracks_Array[Track_Index,"PB_99"] := 1
-					} Else {
+					} else {
 					AllTracks_Array[Track_Index,"PB_99"] := 0
 					}
 				}
-				
+
 				;RI - ##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##
-				If (MessageType = "RI") {
+				if (MessageType == "RI") {
 					;save the current official flagged race
-					If (OfficialRace != "null") {
+					if (OfficialRace != "null") {
 					AllTracks_Array[Track_Index,"OfficialRace"] := OfficialRace
 					}
 					;save the CurrentRace
-					If (NextPost != "null") {
+					if (NextPost != "null") {
 					AllTracks_Array[Track_Index,"NextPost"] := NextPost
 					AllTracks_Array[Track_Index,"CurrentRace"] := CurrentRace
-						If (TrackOfficial = 1) {
+						if (TrackOfficial == 1) {
 						AllTracks_Array[Track_Index,"TrackOfficial"] := 1
 						}
 					}
 				}
-				
+
 				;RN - ##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##=##
-				If (MessageType = "RN") {
-					If (TotalRaces != "null" && TotalRaces != "") {
+				if (MessageType == "RN") {
+					if (TotalRaces != "null" && TotalRaces != "") {
 					AllTracks_Array[Track_Index,"TotalRaces"] := TotalRaces
 					}
 				}
-				
-		} Else {
+
+		} else {
 		The_UnknownmessageCounter++
-		Continue
+		continue
 		}
 	}
 	Txt_Array := []
@@ -410,51 +409,51 @@ Fn_GUI_UpdateProgress(0)
 ;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
 ; Start Moving all Track checks and logic here
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
-Loop, % AllTracks_Array.MaxIndex() {
-	
+loop, % AllTracks_Array.MaxIndex() {
+
 	; "Score" is used to track how health each track's data is. The score will go negative if there are problems; and positive if it is healthy/finished racing/ignorable
 	;All Tracks start with a score of 1
 	AllTracks_Array[A_Index,"Score"] := 1
 	AllTracks_Array[A_Index,"Comment"] := ""
 	AllTracks_Array[A_Index,"Color"] := ""
 	AllTracks_Array[A_Index,"Ignored"] := False
-	
+
 	;Remove any tracks with no TrackCode. This should always be impossible if our data import is very strong
-	If (AllTracks_Array[A_Index,"TrackCode"] = "") {
-	Continue
+	if (AllTracks_Array[A_Index,"TrackCode"] == "") {
+	continue
 	AllTracks_Array.Remove(A_Index)
 	}
-	
+
 	;Track is getting close to post time with no probable data?
-	MTP := 
+	MTP :=
 	MTP := Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})") . ":" . Fn_QuickRegEx(AllTracks_Array[A_Index,"NextPost"],"(\d{2})$")
 	MTP := Fn_IsTimeClose(MTP,1,"m")
 	MTP := MTP - MTPDelay
 	AllTracks_Array[A_Index,"MTP"] := MTP
-	
+
 		;Is the track super late?
-		If (MTP < -20) {
+		if (MTP < -20) {
 		;AllTracks_Array[A_Index,"Score"] += -100
 		AllTracks_Array[A_Index,"Comment"] := "late"
 		}
-		If (MTP < -30) {
+		if (MTP < -30) {
 		AllTracks_Array[A_Index,"Comment"] := "LATE!"
 		}
-		If (MTP < -40) {
+		if (MTP < -40) {
 		AllTracks_Array[A_Index,"Comment"] := "LATE!"
 		AllTracks_Array[A_Index,"Score"] += -100
 		}
-		If (MTP < -50) {
+		if (MTP < -50) {
 		AllTracks_Array[A_Index,"Comment"] := "LATE!"
 		AllTracks_Array[A_Index,"Score"] += -1000
 		}
-		
-		
-		;If (AllTracks_Array[A_Index,"ProbableType"] = "" && MTP < 30) {
+
+
+		;if (AllTracks_Array[A_Index,"ProbableType"] = "" && MTP < 30) {
 		;AllTracks_Array[A_Index,"Color"] := "Orange"
 		;AllTracks_Array[A_Index,"Comment"] := "No Probable data for upcoming current race"
 		;}
-	
+
 	RI := Fn_IsTimeClose(AllTracks_Array[A_Index,"RI"])
 	PB := Fn_IsTimeClose(AllTracks_Array[A_Index,"PB"])
 	RN := Fn_IsTimeClose(AllTracks_Array[A_Index,"RN"])
@@ -465,64 +464,64 @@ Loop, % AllTracks_Array.MaxIndex() {
 	WR := Fn_IsTimeClose(AllTracks_Array[A_Index,"WR"])
 	WP := Fn_IsTimeClose(AllTracks_Array[A_Index,"WP"])
 	;Msgbox, % MTP
-		If (PB > 300 && MTP < 30 || PB = "") {
+		if (PB > 300 && MTP < 30 || PB == "") {
 		AllTracks_Array[A_Index,"Score"] += -100
 		AllTracks_Array[A_Index,"Comment"] := "PB MISSING - Feature Probables Messages"
 		}
-		If (RN > 300 && MTP < 30 || RN = "") {
+		if (RN > 300 && MTP < 30 || RN == "") {
 		AllTracks_Array[A_Index,"Score"] += -100
 		AllTracks_Array[A_Index,"Comment"] := "RN MISSING - Scratched Runner Messages"
 		}
-		If (PS > 300 && MTP < 30 || PS = "") {
+		if (PS > 300 && MTP < 30 || PS == "") {
 		AllTracks_Array[A_Index,"Score"] += -100
 		AllTracks_Array[A_Index,"Comment"] := "PS MISSING - Scratched Pools Messages"
 		}
-		If (PT > 300 && MTP < 30 || PT = "") {
+		if (PT > 300 && MTP < 30 || PT == "") {
 		AllTracks_Array[A_Index,"Score"] += -100
 		AllTracks_Array[A_Index,"Comment"] := "PT MISSING - Pool Totals Messages"
 		}
-		If (SP > 300 && MTP < 30 || SP = "") {
+		if (SP > 300 && MTP < 30 || SP == "") {
 		AllTracks_Array[A_Index,"Score"] := -100
 		AllTracks_Array[A_Index,"Comment"] := "SP MISSING - WPS Probables Messages"
 		}
-		If (WO > 300 && MTP < 30 || WO = "") {
+		if (WO > 300 && MTP < 30 || WO == "") {
 		AllTracks_Array[A_Index,"Score"] += -100
 		AllTracks_Array[A_Index,"Comment"] := "WO MISSING - Win Odds Messages"
 		}
-		If (WR > 300 && MTP < 30 || WR = "") {
+		if (WR > 300 && MTP < 30 || WR == "") {
 		AllTracks_Array[A_Index,"Score"] += -100
 		AllTracks_Array[A_Index,"Comment"] := "WR MISSING - WPS Totals Messages"
 		}
-		If (AllTracks_Array[A_Index,"ProbableType"] = " " && MTP < 10) ;This needs to be improved
+		if (AllTracks_Array[A_Index,"ProbableType"] == " " && MTP < 10) ;This needs to be improved
 		{
 		AllTracks_Array[A_Index,"Score"] += -100
 		AllTracks_Array[A_Index,"Comment"] := "NextRace Probables late"
 		}
-		If (RI > 300 || RI = "") {
+		if (RI > 300 || RI == "") {
 		AllTracks_Array[A_Index,"Score"] += -1000
 		AllTracks_Array[A_Index,"Comment"] := "RI MISSING Race Information Messages"
 		}
 		;Willpays not required
-		;If (WP = "") {
+		;if (WP = "") {
 		;AllTracks_Array[A_Index,"Score"] := -100
 		;AllTracks_Array[A_Index,"Comment"] := "MISSING WillPay Messages"
 		;}
-		
-	
+
+
 	;Track Completed?
-	If (AllTracks_Array[A_Index,"TotalRaces"] = AllTracks_Array[A_Index,"OfficialRace"] && AllTracks_Array[A_Index,"TotalRaces"] != "") {
-	AllTracks_Array[A_Index,"Completed"] := True
+	if (AllTracks_Array[A_Index,"TotalRaces"] == AllTracks_Array[A_Index,"OfficialRace"] && AllTracks_Array[A_Index,"TotalRaces"] != "") {
+	AllTracks_Array[A_Index,"Completed"] := true
 	AllTracks_Array[A_Index,"Comment"] := ""
-	} Else {
-	AllTracks_Array[A_Index,"Completed"] := False
+	} else {
+	AllTracks_Array[A_Index,"Completed"] := false
 	}
-	
-	
-	
+
+
+
 	;Track Ignored!?
 	X := A_Index
-	Loop, % IgnoredTracks.MaxIndex() {
-		If (IgnoredTracks[A_Index] = AllTracks_Array[X,"TrackCode"]) {
+	loop, % IgnoredTracks.MaxIndex() {
+		if (IgnoredTracks[A_Index] = AllTracks_Array[X,"TrackCode"]) {
 		AllTracks_Array[X,"Ignored"] := True
 		}
 	}
@@ -530,41 +529,41 @@ Loop, % AllTracks_Array.MaxIndex() {
 
 
 ;Determine color by score
-Loop, % AllTracks_Array.MaxIndex() {
+loop, % AllTracks_Array.MaxIndex() {
 
 	;Color Bad Scores
-	If (AllTracks_Array[A_Index,"Score"] > -9999999) {
+	if (AllTracks_Array[A_Index,"Score"] > -9999999) {
 	AllTracks_Array[A_Index,"Color"] := "Red"
 	}
-	If (AllTracks_Array[A_Index,"Score"] > -200) {
+	if (AllTracks_Array[A_Index,"Score"] > -200) {
 	AllTracks_Array[A_Index,"Color"] := "Orange"
 	}
-	If (AllTracks_Array[A_Index,"Score"] > -100) {
+	if (AllTracks_Array[A_Index,"Score"] > -100) {
 	AllTracks_Array[A_Index,"Color"] := "Yellow"
 	}
-	
-	
+
+
 	;Color Completed Tracks
-	If (AllTracks_Array[A_Index,"Completed"] = True) {
+	if (AllTracks_Array[A_Index,"Completed"] = True) {
 	AllTracks_Array[A_Index,"Color"] := "Grey"
 	AllTracks_Array[A_Index,"Score"] := 1000
-	Continue
+	continue
 	}
-	
-	
+
+
 	;Color Ignored Tracks
-	If (AllTracks_Array[A_Index,"Ignored"] = True) {
+	if (AllTracks_Array[A_Index,"Ignored"] = True) {
 	AllTracks_Array[A_Index,"Color"] := "DarkGrey"
 	AllTracks_Array[A_Index,"Score"] := 999
-	Continue
+	continue
 	}
-	
-	
+
+
 	;Color Good Tracks
-	If (AllTracks_Array[A_Index,"Score"] = 1) {
+	if (AllTracks_Array[A_Index,"Score"] = 1) {
 	AllTracks_Array[A_Index,"Color"] := "None"
 	}
-	If (AllTracks_Array[A_Index,"Score"] > 1) {
+	if (AllTracks_Array[A_Index,"Score"] > 1) {
 	AllTracks_Array[A_Index,"Color"] := "None"
 	}
 }
@@ -582,17 +581,17 @@ LVA_EraseAllCells("GUI_Listview")
 LV_Delete()
 LVA_Refresh("GUI_Listview")
 
-Loop, % AllTracks_Array.MaxIndex() {
+loop, % AllTracks_Array.MaxIndex() {
 
 	WP := ""
 	PB := ""
-	
-	
-	If (AllTracks_Array[A_Index,"ProbableType"] != "null" && AllTracks_Array[A_Index,"PB_99"] != 1)
+
+
+	if (AllTracks_Array[A_Index,"ProbableType"] != "null" && AllTracks_Array[A_Index,"PB_99"] != 1)
 	{
 	PB := AllTracks_Array[A_Index,"ProbableType"]
 	}
-	If (AllTracks_Array[A_Index,"WP"] != "")
+	if (AllTracks_Array[A_Index,"WP"] != "")
 	{
 	WP = ✓
 	}
@@ -604,18 +603,18 @@ Loop, % AllTracks_Array.MaxIndex() {
 ;Convert last timestamp to easy to work with age of last message
 TimeDifference := Fn_IsTimeClose(AllTracks_Array[A_Index,"TimeStamp"],0,"s")
 TimeString := " sec"
-	;If the last message was more than 60 seconds ago. Must be at least a min old
-	If (TimeDifference >= 60 || TimeDifference = "ERROR") {
+	;if the last message was more than 60 seconds ago. Must be at least a min old
+	if (TimeDifference >= 60 || TimeDifference = "ERROR") {
 	TimeDifference := Fn_IsTimeClose(AllTracks_Array[A_Index,"TimeStamp"],0,"m")
 	TimeString := " min"
-		;If the track hasn't got a new message in 3 mins! LATE!!!!
-		If (TimeDifference > 3) {
+		;if the track hasn't got a new message in 3 mins! LATE!!!!
+		if (TimeDifference > 3) {
 		;LVA_SetCell("GUI_Listview", A_Index, 5, "ffbe03")
 		}
-		If (TimeDifference > 5) {
+		if (TimeDifference > 5) {
 		;LVA_SetCell("GUI_Listview", A_Index, 5, "Red")
 		}
-		If (TimeDifference >= 60) {
+		if (TimeDifference >= 60) {
 		TimeDifference := Fn_IsTimeClose(AllTracks_Array[A_Index,"TimeStamp"],0,"h")
 		TimeString := " hour"
 		}
@@ -624,46 +623,46 @@ TimeDifference := TimeDifference . TimeString
 
 
 ;;Color Tracks that are missing messages
-	If (AllTracks_Array[A_Index,"Color"] = "Red") {
+	if (AllTracks_Array[A_Index,"Color"] = "Red") {
 	LVA_SetCell("GUI_Listview", A_Index, 0, "9933ff") ;Previously Red "Red"; also purple: 9551ff
 	}
-	If (AllTracks_Array[A_Index,"Color"] = "Orange") {
+	if (AllTracks_Array[A_Index,"Color"] = "Orange") {
 	LVA_SetCell("GUI_Listview", A_Index, 0, "5153ff") ;Previously Orange "FF6600"
 	}
-	If (AllTracks_Array[A_Index,"Color"] = "Yellow") {
+	if (AllTracks_Array[A_Index,"Color"] = "Yellow") {
 	LVA_SetCell("GUI_Listview", A_Index, 0, "5182ff") ;Previously Yellow "FFCC00"
 	}
-	If (AllTracks_Array[A_Index,"Color"] = "None") {
+	if (AllTracks_Array[A_Index,"Color"] = "None") {
 	LVA_SetCell("GUI_Listview", A_Index, 0, "FFFFFF")
 	}
-	If (AllTracks_Array[A_Index,"Color"] = "Grey") {
+	if (AllTracks_Array[A_Index,"Color"] = "Grey") {
 	LVA_SetCell("GUI_Listview", A_Index, 0, "cccccc")
 	}
-	If (AllTracks_Array[A_Index,"Color"] = "DarkGrey") {
+	if (AllTracks_Array[A_Index,"Color"] = "DarkGrey") {
 	LVA_SetCell("GUI_Listview", A_Index, 0, "8e8e8e")
 	}
-	
+
 
 ;;Color late tracks MTP cell. But only if NOT ignored or NOT complete; Kinda pointless because comment is set to "" when complete. Impossible to detect now.
-	If !(AllTracks_Array[A_Index,"Completed"] || AllTracks_Array[A_Index,"Ignored"] ) {
-		If (AllTracks_Array[A_Index,"Comment"] = "late" && ) {
+	if !(AllTracks_Array[A_Index,"Completed"] || AllTracks_Array[A_Index,"Ignored"] ) {
+		if (AllTracks_Array[A_Index,"Comment"] = "late" && ) {
 		LVA_SetCell("GUI_Listview", A_Index, 3, "FFCC00") ;Yellow
 		}
-		If (AllTracks_Array[A_Index,"Comment"] = "LATE!") {
+		if (AllTracks_Array[A_Index,"Comment"] = "LATE!") {
 		LVA_SetCell("GUI_Listview", A_Index, 3, "FF6600") ;Orange
 		}
 	}
 
-	
+
 MTP := AllTracks_Array[A_Index,"MTP"]
 
-	;If (AllTracks_Array[A_Index,"Completed"] = False)
-	If (1) {
+	;if (AllTracks_Array[A_Index,"Completed"] = False)
+	if (1) {
 	;Note some fields have extra A_Space or "   " appended to help with LV_ModifyCol() later. modifying each column is resource intensive for overloaded wallboard monitors
 	LV_Add("",AllTracks_Array[A_Index,"TrackName"],AllTracks_Array[A_Index,"TrackCode"] . " ",AllTracks_Array[A_Index,"MTP"] . " ",AllTracks_Array[A_Index,"CurrentRace"] . "/" . AllTracks_Array[A_Index,"TotalRaces"],TimeDifference . "   ",PB . "   ",WP . "   ",AllTracks_Array[A_Index,"Comment"])
 	}
-	
-	If(TimeDifference = "") {
+
+	if (TimeDifference = "") {
 	LVA_SetCell("GUI_Listview", A_Index, 3, "Red")
 	}
 }
@@ -671,7 +670,7 @@ MTP := AllTracks_Array[A_Index,"MTP"]
 
 
 	;Only save to DB if current time dictates
-	If (The_UseDB) {
+	if (The_UseDB) {
 	Fn_ExportArray(AllTracks_Array,"MainDB")
 	}
 ;Note some fields have extra A_Space or "   " appended to help with LV_ModifyCol() later. modifying each column is resource intensive for overloaded wallboard monitors
@@ -693,7 +692,7 @@ Sleep 200
 
 DiableAllButtons()
 EnableAllButtons()
-Return
+return
 
 
 
@@ -706,7 +705,7 @@ Return
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 ;Dependencies
 #Include LVA
-Return
+return
 
 ;~~~~~~~~~~~~~~~~~~~~~
 ; Variables
@@ -737,9 +736,9 @@ FileInstall, Data\SDL_Locations.txt, %A_ScriptDir%\Data\SDL_Locations.txt, 0
 Fn_FileTail(FileName, Lines := 100, NewLine := "`r`n")
 {
 Static MaxLineLength := 256 ; seems to be a reasonable value to start with
-	If !IsObject(File := FileOpen(FileName, "r")){
-	Return ""
-	
+	if !IsObject(File := FileOpen(FileName, "r")){
+	return ""
+
 	}
 Content := ""
 LinesLength := MaxLineLength * Lines * (InStr(File.Encoding, "UTF-8") ? 2 : 1)
@@ -748,28 +747,28 @@ BytesToRead := 0
 FoundLines := 0
 	While (BytesToRead < FileLength) && !(FoundLines) {
 	BytesToRead += LinesLength
-		If (BytesToRead < FileLength) {
+		if (BytesToRead < FileLength) {
 		File.Pos := FileLength - BytesToRead
-		} Else {
+		} else {
 		File.Pos := 0
 		}
 	Content := RTrim(File.Read(), NewLine)
 	;Msgbox, % Content
-		If (FoundLines := InStr(Content, NewLine, 0, 0, Lines)) {
+		if (FoundLines := InStr(Content, NewLine, 0, 0, Lines)) {
 		Content := SubStr(Content, FoundLines + StrLen(NewLine))
 		}
 	}
 File.Close()
-Return (Content <> "" ? StrSplit(Content, NewLine) : Content)
+return (Content <> "" ? StrSplit(Content, NewLine) : Content)
 }
 
 
 Fn_FileTailRAW(FileName, Lines := 100, NewLine := "`r`n")
 {
 Static MaxLineLength := 256 ; seems to be a reasonable value to start with
-	If !IsObject(File := FileOpen(FileName, "r")){
-	Return ""
-	
+	if !IsObject(File := FileOpen(FileName, "r")){
+	return ""
+
 	}
 Content := ""
 LinesLength := MaxLineLength * Lines * (InStr(File.Encoding, "UTF-8") ? 2 : 1)
@@ -778,67 +777,67 @@ BytesToRead := 0
 FoundLines := 0
 	While (BytesToRead < FileLength) && !(FoundLines) {
 	BytesToRead += LinesLength
-		If (BytesToRead < FileLength) {
+		if (BytesToRead < FileLength) {
 		File.Pos := FileLength - BytesToRead
-		} Else {
+		} else {
 		File.Pos := 0
 		}
 	Content := RTrim(File.Read(), NewLine)
-		If (FoundLines := InStr(Content, NewLine, 0, 0, Lines)) {
+		if (FoundLines := InStr(Content, NewLine, 0, 0, Lines)) {
 		Content := SubStr(Content, FoundLines + StrLen(NewLine))
 		}
 	}
 File.Close()
-Return, % Content
+return, % Content
 }
 
 
-Fn_IsTimeClose(para_TimeStamp,para_Reverse := 0,para_ReturnType := "s")
+Fn_IsTimeClose(para_TimeStamp,para_Reverse := 0,para_returnType := "s")
 {
-;Checks if two timestamps are close to each other; returns difference in seconds by default. para_reverse = 1 subtracks 
+;Checks if two timestamps are close to each other; returns difference in seconds by default. para_reverse = 1 subtracks
 l_TimeStamp1 := Fn_QuickRegEx(para_TimeStamp,"(\d{2}):")
 l_TimeStamp2 := Fn_QuickRegEx(para_TimeStamp,":(\d{2})")
-	If (l_TimeStamp1 != "null" && l_TimeStamp2 != "null") {
+	if (l_TimeStamp1 != "null" && l_TimeStamp2 != "null") {
 	FormatTime, Currentday_PRE,, yyyyMMdd
 	l_TimeStampConverted := Currentday_PRE . l_TimeStamp1 . l_TimeStamp2 . 00
 		;do for normal or reserve
-		If (para_reverse = 0) {
+		if (para_reverse = 0) {
 		l_Now := A_Now
-		l_Now -= l_TimeStampConverted, %para_ReturnType%
+		l_Now -= l_TimeStampConverted, %para_returnType%
 		Difference := l_Now
-		} Else {
-		l_TimeStampConverted -= A_Now, %para_ReturnType%
+		} else {
+		l_TimeStampConverted -= A_Now, %para_returnType%
 		Difference := l_TimeStampConverted
 		;Difference := l_TimeStampConverted - A_Now
 		}
-	Return %Difference%
+	return %Difference%
 	Msgbox, %l_TimeStampConverted% - %A_Now%  = %Difference%    # (%l_TimeStamp1%%l_TimeStamp2%)
 	}
-	Return "ERROR"
+	return "ERROR"
 }
 
-Fn_TimeDifference(para_TimeStamp,para_Reverse := 0,para_ReturnType := "s")
+Fn_TimeDifference(para_TimeStamp,para_Reverse := 0,para_returnType := "s")
 {
-;Checks if two timestamps are close to each other; returns difference in seconds by default. para_reverse = 1 subtracks 
+;Checks if two timestamps are close to each other; returns difference in seconds by default. para_reverse = 1 subtracks
 l_TimeStamp1 := Fn_QuickRegEx(para_TimeStamp,"(\d{2}):")
 l_TimeStamp2 := Fn_QuickRegEx(para_TimeStamp,":(\d{2})")
-	If (l_TimeStamp1 != "null" && l_TimeStamp2 != "null") {
+	if (l_TimeStamp1 != "null" && l_TimeStamp2 != "null") {
 	FormatTime, Currentday_PRE,, yyyyMMdd
 	l_TimeStampConverted := Currentday_PRE . l_TimeStamp1 . l_TimeStamp2 . 00
 		;do for normal or reserve
-		If (para_reverse = 0) {
+		if (para_reverse = 0) {
 		l_Now := A_Now
-		l_Now -= l_TimeStampConverted, %para_ReturnType%
+		l_Now -= l_TimeStampConverted, %para_returnType%
 		Difference := l_Now
-		} Else {
-		l_TimeStampConverted -= A_Now, %para_ReturnType%
+		} else {
+		l_TimeStampConverted -= A_Now, %para_returnType%
 		Difference := l_TimeStampConverted
 		;Difference := l_TimeStampConverted - A_Now
 		}
-	Return %Difference%
+	return %Difference%
 	Msgbox, %l_TimeStampConverted% - %A_Now%  = %Difference%    # (%l_TimeStamp1%%l_TimeStamp2%)
 	}
-	Return "ERROR"
+	return "ERROR"
 }
 
 Sb_DailyRestart(para_RestartTime)
@@ -849,11 +848,11 @@ global
 ;SetTimer, DailyRestartCheck, 1200000
 The_RestartTime := para_RestartTime
 DailyRestartCheck:
-	If (The_RestartTime = A_Hour) {
+	if (The_RestartTime = A_Hour) {
 	RecalculateToday = 1
 	;Debug_Msg("recalculating today")
 	}
-Return
+return
 }
 
 
@@ -863,14 +862,14 @@ Fn_ImportDBData(para_DB,para_DBlabel)
 global
 FormatTime, A_Today, , yyyyMMdd
 ExternalDB = %A_ScriptDir%\Data\DB\%A_Today%_%The_SystemName%_%The_VersionName%_%para_DBlabel%.json
-	If(FileExist(ExternalDB)) {
+	if (FileExist(ExternalDB)) {
 	FileRead, MemoryFile, %ExternalDB%
 	Temp_Array := Fn_JSONtooOBJ(MemoryFile)
 	MemoryFile := []
-	} Else {
+	} else {
 	Temp_Array := []
 	}
-Return %Temp_Array%
+return %Temp_Array%
 }
 
 ;Export Array as a JSON file
@@ -880,7 +879,7 @@ global
 FormatTime, A_Today, , yyyyMMdd
 ExternalDB = %A_ScriptDir%\Data\DB\%A_Today%_%The_SystemName%_%The_VersionName%_%para_DBlabel%.json
 ;msgbox, % ExternalDB
-	If(FileExist(ExternalDB)) {
+	if (FileExist(ExternalDB)) {
 	FileDelete, %ExternalDB%
 	;msgbox, delete!!!
 	}
@@ -894,9 +893,9 @@ Fn_DeleteTodaysDB()
 {
 	FormatTime, A_Today, , yyyyMMdd
 	ExternalDB_dir = %A_ScriptDir%\Data\DB\%A_Today%*.json
-	Loop, % ExternalDB_dir
+	loop, % ExternalDB_dir
 	{
-		FileDelete, % A_LoopFileFullPath
+		FileDelete, % A_loopFileFullPath
 	}
 }
 
@@ -904,7 +903,7 @@ Fn_DeleteTodaysDB()
 Fn_StripleadingZero(para_input)
 {
 	OutputVar := Fn_QuickRegEx(para_input,"0(\d+)")
-	If (OutputVar = "null") {
+	if (OutputVar = "null") {
 		return % para_input
 	} else {
 		return % OutputVar
@@ -926,52 +925,52 @@ if (InStr(A_ComputerName,"Board")) {
 	guisize_entire := "h900 w550"
 	guisize_listview := "h828 w546 "
 }
-;SetTimer, Menu_File-Restart, -10800000	
+;SetTimer, Menu_File-Restart, -10800000
 ;SetTimer, Menu_File-Restart, -240000	;FOR DEBUG ONLY
 
-	;Select blah blah 
+	;Select blah blah
 	RestartFile_Location := A_ScriptDir . "\Restart.txt"
-	If (FileExist(RestartFile_Location)) {
+	if (FileExist(RestartFile_Location)) {
 	FileRead, The_MemoryFile, % RestartFile_Location
 	The_DefaultSystemName := Fn_QuickRegEx(The_MemoryFile,"SystemName:(\w+)")
 	GUI_X := Fn_QuickRegEx(The_MemoryFile,"x:(\d+)")
 	GUI_Y := Fn_QuickRegEx(The_MemoryFile,"y:(\d+)")
 	FileDelete, % RestartFile_Location
 	}
-	
+
 ;Create Array and fill with data about each Data Collector
 SGRDatafeeds_Array := []
-	Loop, Read, %A_ScriptDir%\Data\SDL_Locations.txt 
+	loop, Read, %A_ScriptDir%\Data\SDL_Locations.txt
 	{
-	SystemName := Fn_QuickRegEx(A_LoopReadLine,"\\\\(.+\d)\\")
-	FilePath := Fn_QuickRegEx(A_LoopReadLine,"ath:'(.+?)'")
-	ShortName := Fn_QuickRegEx(A_LoopReadLine,"Name:'(.+?)'")
-	Delay := Fn_QuickRegEx(A_LoopReadLine,"Delay:'(.+?)'")
-	
-	If (The_DefaultSystemName != "" && InStr(SystemName,The_DefaultSystemName)) {
+	SystemName := Fn_QuickRegEx(A_loopReadLine,"\\\\(.+\d)\\")
+	FilePath := Fn_QuickRegEx(A_loopReadLine,"ath:'(.+?)'")
+	ShortName := Fn_QuickRegEx(A_loopReadLine,"Name:'(.+?)'")
+	Delay := Fn_QuickRegEx(A_loopReadLine,"Delay:'(.+?)'")
+
+	if (The_DefaultSystemName != "" && InStr(SystemName,The_DefaultSystemName)) {
 	makedefault = 1
-	} Else {
+	} else {
 	makedefault = 0
 	}
-		
+
 	;Create small list of display options for dropdown selector
 	DataFeed_List .= ShortName . "   " . SystemName . "|"
 		;Add extra pipe to first item so it is the default selected by GUI
-		If (A_Index = 1 && The_DefaultSystemName = "") {
+		if (A_Index = 1 && The_DefaultSystemName = "") {
 		DataFeed_List .= "|"
 		}
-		If (makedefault) {
+		if (makedefault) {
 		DataFeed_List .= "|"
 		}
-		
+
 	SGRDatafeeds_Array[A_Index,"SystemName"] := SystemName
 	SGRDatafeeds_Array[A_Index,"FilePath"] := FilePath
 	SGRDatafeeds_Array[A_Index,"ShortName"] := ShortName
 	SGRDatafeeds_Array[A_Index,"Delay"] := Delay
 	}
-	
+
 Gui, Add, Text, x440 y3 w100 +Right, %The_VersionName%
-Gui, Add, Tab, x2 y0 h1050 w550  , Main|Options
+Gui, Add, Tab, x2 y0 h1050 w550, Main|Options
 
 ;Main Tab
 Gui, Add, Button, x2 y30 w100 h30 gUpdateButton, Update
@@ -1003,7 +1002,7 @@ GUI, Submit, NoHide
 Menu, FileMenu, Add, &Update Now, UpdateButton
 Menu, FileMenu, Add, R&estart`tCtrl+R, Menu_File-Restart
 Menu, FileMenu, Add, E&xit`tCtrl+Q, Menu_File-Quit
-Menu, MenuBar, Add, &File, :FileMenu  ; Attach the sub-menu that was created above
+Menu, MenuBar, Add, &File, :FileMenu ; Attach the sub-menu that was created above
 
 Menu, HelpMenu, Add, &About, Menu_About
 Menu, HelpMenu, Add, &Confluence`tCtrl+H, Menu_Confluence
@@ -1012,25 +1011,25 @@ Menu, MenuBar, Add, &Help, :HelpMenu
 Gui, Menu, MenuBar
 
 ;Show GUI in last location unless error is encountered. Use middle if screen if so
-	If (GUI_X = "null" || GUI_Y = "null" || GUI_X = "" || GUI_Y = ""){
+	if (GUI_X = "null" || GUI_Y = "null" || GUI_X = "" || GUI_Y = "") {
 	GUI_X = 0
 	GUI_Y = 0
 	}
 
 Gui, Show, %guisize_entire%, % The_ProjectName
-	;Loop, 10 
+	;loop, 10
 	;{
 	;Gui, Show, x%GUI_X% y%GUI_Y%, % The_ProjectName
 	;}
-	
-	If (InStr(CLI_Arg,"tvg")) {
-		Loop, 10
+
+	if (InStr(CLI_Arg,"tvg")) {
+		loop, 10
 		{
 		Gui, Show, x1920 y-1, % The_ProjectName
 		}
 	}
-	If (InStr(CLI_Arg,"nj")) {
-		Loop, 10
+	if (InStr(CLI_Arg,"nj")) {
+		loop, 10
 		{
 		Gui, Show, x2480 y-1, % The_ProjectName
 		}
@@ -1038,7 +1037,7 @@ Gui, Show, %guisize_entire%, % The_ProjectName
 
 ;Start Autoupdate by default
 GoSub, AutoUpdate
-Return
+return
 
 
 
@@ -1048,94 +1047,93 @@ GUI, Submit, NoHide
 RefreshMilli := 0
 RefreshMilli := Fn_QuickRegEx(GUI_RefreshAmmount,"(\d+)")
 
-	If(RefreshMilli >= 1 && GUI_RefreshCheckBox = 1)
+	if (RefreshMilli >= 1 && GUI_RefreshCheckBox = 1)
 	{
 	RefreshMilli := RefreshMilli * 60000
 	GuiControl,, GUI_RefreshCheckBox, 1
 	SetTimer, UpdateButton, %RefreshMilli%
 	}
-	If(GUI_RefreshCheckBox = 0)
+	if (GUI_RefreshCheckBox = 0)
 	{
 	GuiControl,, GUI_RefreshCheckBox, 0
 	SetTimer, UpdateButton, Off
 	}
-Return
+return
 
 
 
 RightClick:
-;Send Track to Json file so it won't be highlighted. 
-	If A_GuiEvent = DoubleClick
+;Send Track to Json file so it won't be highlighted.
+	if A_GuiEvent = DoubleClick
 	{
 	;Get the text from the row's fourth field. Runner Name
 	LV_GetText(RowText, A_EventInfo, 2)
 	RowText = %RowText% ;Remove spaces
-		If (RowText != "") {
+		if (RowText != "") {
 		;Load any existing DB from other Ops
 		IgnoredTracks := Fn_ImportDBData(IgnoredTracks,"IgnoredDB")
-			Loop, % IgnoredTracks.MaxIndex() {
-				If (RowText = IgnoredTracks[A_Index])
+			loop, % IgnoredTracks.MaxIndex() {
+				if (RowText = IgnoredTracks[A_Index])
 				{
 				IgnoredTracks.Remove(A_Index)
 				Fn_ExportArray(IgnoredTracks,"IgnoredDB")
-				Return
+				return
 				}
 			}
 		;Add the new name and Export
 		IgnoredTracks.Insert(RowText)
-		
 		Fn_ExportArray(IgnoredTracks,"IgnoredDB")
 		}
 	}
-Return
+return
 
 DoubleClick:
 ;expand out races information when track is double clicked
-	If (A_GuiEvent = "DoubleClick") {
+	if (A_GuiEvent = "DoubleClick") {
 		LV_GetText(RowText, A_EventInfo, 2)
 		;RowText is now = TrackCode
-		If (RowText != "") {
+		if (RowText != "") {
 			ControlConsoleObj.ExpandTrack(RowText,A_EventInfo)
 		}
 	}
 
-If (A_GuiEvent = "R")	{
+if (A_GuiEvent = "R")	{
 	;Get the text from the row's fourth field. Runner Name
 	LV_GetText(RowText, A_EventInfo, 2)
 	RowText = %RowText% ;Remove spaces
-		If (RowText != "") {
+		if (RowText != "") {
 		;Load any existing DB from other Ops
 		IgnoredTracks := Fn_ImportDBData(IgnoredTracks,"IgnoredDB")
-			Loop, % IgnoredTracks.MaxIndex() {
-				If (RowText = IgnoredTracks[A_Index])
+			loop, % IgnoredTracks.MaxIndex() {
+				if (RowText = IgnoredTracks[A_Index])
 				{
 				IgnoredTracks.Remove(A_Index)
 				Fn_ExportArray(IgnoredTracks,"IgnoredDB")
-				Return
+				return
 				}
 			}
 		;Add the new name and Export
 		IgnoredTracks.Insert(RowText)
-		
+
 		Fn_ExportArray(IgnoredTracks,"IgnoredDB")
 		}
 	}
 
-Return
+return
 
 
 ;Menu Shortcuts
 Menu_Confluence:
 Run, http://confluence.tvg.com/display/wog/Ops+Tool+-+SDL+Overview
-Return
+return
 
 Menu_About:
 Msgbox, Checks selected SGR Datafile for up to date data.
-Return
+return
 
 Menu_File-Restart:
 Gui, Submit, NoHide
-The_SystemName := Fn_QuickRegEx(SGR_Choice,"   (\w+)")
+The_SystemName := Fn_QuickRegEx(SGR_Choice, "   (\w+)")
 WinGetPos, GUI_X, GUI_Y,,, % The_ProjectName
 FileAppend, x:%GUI_X% y:%GUI_Y% SystemName:%The_SystemName%`n`r, %A_ScriptDir%\Restart.txt
 Sleep 300
@@ -1149,22 +1147,22 @@ ShiftNotes:
 Today:= %A_Now%
 FormatTime, CurrentDateTime,, MMddyy
 Run \\tvgops\pdxshares\wagerops\Daily Shift Notes\%CurrentDateTime%.xlsx
-Return
+return
 }
 
 ViewDB:
-Array_Gui(ControlConsoleObj.ReturnTopObject())
-Return
+Array_Gui(ControlConsoleObj.returnTopObject())
+return
 
 ForgetAll:
 Fn_DeleteTodaysDB()
 ;; Object.Update() would be nice here if this had been designed objectively
-Return
+return
 
 Fn_GUI_UpdateProgress(para_Progress1, para_Progress2 = 0)
 {
 	;Calculate progress if two parameters input. otherwise set if only one entered
-	If (para_Progress2 = 0)
+	if (para_Progress2 = 0)
 	{
 	GuiControl,, UpdateProgress, %para_Progress1%+
 	}
@@ -1173,7 +1171,6 @@ Fn_GUI_UpdateProgress(para_Progress1, para_Progress2 = 0)
 	para_Progress1 := (para_Progress1 / para_Progress2) * 100
 	GuiControl,, UpdateProgress, %para_Progress1%
 	}
-
 }
 
 
@@ -1208,15 +1205,15 @@ ExitApp
 Sb_FlashGUI()
 {
 SetTimer, FlashGUI, -1000
-Return
+return
 FlashGUI:
 
-	Loop, 6
+	loop, 6
 	{
 	Gui Flash
-	Sleep 500  ;Do not change this value
+	Sleep 500 ; Do not change this value
 	}
-Return
+return
 }
 
 ;~~~~~~~~~~~~~~~~~~~~~
@@ -1232,7 +1229,7 @@ SetTimer, MouseToolTip, 100
 MouseGetPos, M_PosX, M_PosY, WinID
 ToolTip, %The_Message%, M_PosX, M_PosY, 1
 ToolTip_X += 1
-	If(ToolTip_X = 100)
+	if (ToolTip_X = 100)
 	{
 	ToolTip
 	SetTimer, MouseToolTip, Off
